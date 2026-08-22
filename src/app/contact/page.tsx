@@ -45,7 +45,7 @@ export default function ContactPage() {
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                 <strong>SPARSHA CYBER CAFE</strong><br />
                 Plus Code: <span className="font-semibold text-blue-600">{plusCode}</span><br />
-                Near Lingasayat Bhavan, Sagri Complex, Razvi Road, Aland, Karnataka 585302
+                Near Lingayat Bhavan, Sagri Complex, Razvi Road, Aland, Karnataka 585302
               </p>
               <a
                 href={directionsUrl}

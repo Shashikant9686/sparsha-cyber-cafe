@@ -8,7 +8,7 @@ export const BUSINESS_INFO = {
   whatsappNumber: "917090161083",
   email: "Shashikantkmali83@gmail.com",
   adminEmail: "siddumaindargi36@gmail.com",
-  address: "Near Lingasayat Bhavan, M.K Sagri Complex, Aland, Karnataka 585302",
+  address: "Near Lingayat Bhavan, M.K Sagri Complex, Aland, Karnataka 585302",
   plusCode: "HH78+Q27, Aland, Karnataka",
   googleMapsUrl: "https://www.google.com/maps/dir/?api=1&destination=Sparsha+Cyber+Cafe,+HH78%2BQ27,+Aland,+Karnataka",
   googleMapsEmbedUrl: "https://maps.google.com/maps?q=Sparsha+Cyber+Cafe,+HH78%2BQ27,+Aland,+Karnataka&t=&z=16&ie=UTF8&iwloc=&output=embed",
