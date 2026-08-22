@@ -11,11 +11,13 @@ interface ServiceFormProps {
   initialServiceId?: string;
   initialData?: {
     id?: string;
-    title: string;
+    title?: string;
+    name?: string;
     slug?: string;
     category?: string;
     short_description?: string;
     full_description?: string;
+    description?: string;
     official_fee?: string;
     service_charge?: string;
     processing_time?: string;
@@ -36,10 +38,10 @@ export default function ServiceForm({
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   // Form states with blank defaults for optional fields
-  const [title, setTitle] = useState(initialData?.title || '');
+  const [title, setTitle] = useState(initialData?.title || initialData?.name || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [category, setCategory] = useState(initialData?.category || 'Government & Certificate Services');
-  const [shortDescription, setShortDescription] = useState(initialData?.short_description || '');
+  const [shortDescription, setShortDescription] = useState(initialData?.short_description || initialData?.description || '');
   const [fullDescription, setFullDescription] = useState(initialData?.full_description || '');
   const [officialFee, setOfficialFee] = useState(initialData?.official_fee || '');
   const [serviceCharge, setServiceCharge] = useState(initialData?.service_charge || '');
@@ -60,10 +62,10 @@ export default function ServiceForm({
 
         if (error) throw error;
         if (data) {
-          setTitle(data.title || '');
+          setTitle(data.title || data.name || '');
           setSlug(data.slug || '');
           setCategory(data.category || 'Government & Certificate Services');
-          setShortDescription(data.short_description || '');
+          setShortDescription(data.short_description || data.description || '');
           setFullDescription(data.full_description || '');
           setOfficialFee(data.official_fee || '');
           setServiceCharge(data.service_charge || '');
@@ -102,12 +104,15 @@ export default function ServiceForm({
 
     const targetId = initialServiceId || initialData?.id;
 
+    // Dual-mapped payload to satisfy both table schema conventions (name/title & descriptions)
     const payload: Record<string, unknown> = {
       title: title.trim(),
+      name: title.trim(),
       slug: slug.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
       category: category || 'Government & Certificate Services',
       short_description: shortDescription.trim() || null,
       full_description: fullDescription.trim() || null,
+      description: shortDescription.trim() || fullDescription.trim() || null,
       official_fee: officialFee.trim() || null,
       service_charge: serviceCharge.trim() || null,
       processing_time: processingTime.trim() || null,
