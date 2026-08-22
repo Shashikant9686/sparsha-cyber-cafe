@@ -1,138 +1,116 @@
 'use client';
 
-import React, { useState, Suspense } from 'react';
-import { useSearchParams } from 'next/navigation';
+import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import { ShieldCheck, Lock, Mail, Loader2, AlertCircle } from 'lucide-react';
+import { Lock, Mail, Loader2, ShieldCheck, AlertCircle } from 'lucide-react';
+import Link from 'next/link';
 
-function LoginForm() {
-  const searchParams = useSearchParams();
-  const redirectPath = searchParams.get('redirect') || '/admin';
-  const errorParam = searchParams.get('error');
-
-  const [email, setEmail] = useState('siddumaindargi36@gmail.com');
+export default function LoginPage() {
+  const router = useRouter();
+  // Clear hardcoded default email
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
-  const [errorMessage, setErrorMessage] = useState<string | null>(
-    errorParam === 'unauthorized'
-      ? 'Access restricted: Your account does not have administrator permissions.'
-      : null
-  );
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    setErrorMessage(null);
     setLoading(true);
+    setErrorMsg(null);
 
     try {
       const supabase = createClient();
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email: email.trim(),
-        password: password,
+        password: password.trim(),
       });
 
       if (error) {
-        setErrorMessage(error.message);
-        setLoading(false);
-        return;
+        throw error;
       }
 
-      if (data.user) {
-        window.location.href = redirectPath;
-      }
-    } catch (err: unknown) {
-      setErrorMessage(
-        err instanceof Error ? err.message : 'An unexpected error occurred during login.'
-      );
+      router.push('/admin');
+      router.refresh();
+    } catch (err: any) {
+      setErrorMsg(err.message || 'Invalid operator email or password.');
+    } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-slate-200 shadow-xl space-y-6">
-      <div className="text-center space-y-2">
-        <div className="w-12 h-12 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center mx-auto shadow-sm">
-          <ShieldCheck className="w-6 h-6" />
+    <div className="min-h-screen bg-slate-900 flex items-center justify-center px-4 py-12">
+      <div className="max-w-md w-full bg-white rounded-3xl p-8 shadow-2xl space-y-6">
+        <div className="text-center space-y-2">
+          <div className="w-12 h-12 bg-blue-100 text-blue-600 rounded-2xl flex items-center justify-center mx-auto">
+            <ShieldCheck className="w-6 h-6" />
+          </div>
+          <h1 className="text-xl font-black text-slate-900 tracking-tight">Operator Desk Login</h1>
+          <p className="text-xs text-slate-500">
+            Sparsha Cyber Cafe & Online Seva Kendra management portal.
+          </p>
         </div>
-        <h1 className="text-xl font-black text-slate-900 tracking-tight">
-          Operator & Admin Portal
-        </h1>
-        <p className="text-xs text-slate-500">
-          Sign in to manage seva listings, counselling alerts, and notification flyers.
-        </p>
+
+        {errorMsg && (
+          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-700 rounded-xl text-xs font-semibold flex items-center gap-2">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{errorMsg}</span>
+          </div>
+        )}
+
+        <form onSubmit={handleLogin} className="space-y-4" autoComplete="off">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Operator Email
+            </label>
+            <div className="relative">
+              <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="email"
+                required
+                autoComplete="off"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="operator@example.com"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wider">
+              Password
+            </label>
+            <div className="relative">
+              <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-3" />
+              <input
+                type="password"
+                required
+                autoComplete="new-password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="w-full pl-10 pr-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            disabled={loading}
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-lg transition flex items-center justify-center gap-2"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Sign In to Control Center'}
+          </button>
+        </form>
+
+        <div className="text-center pt-2">
+          <Link href="/" className="text-xs font-semibold text-slate-500 hover:text-slate-900 transition">
+            ← Back to Public Website
+          </Link>
+        </div>
       </div>
-
-      {errorMessage && (
-        <div className="p-3.5 bg-rose-50 border border-rose-200 rounded-2xl flex items-start gap-2.5 text-xs text-rose-700 font-semibold">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <span>{errorMessage}</span>
-        </div>
-      )}
-
-      <form onSubmit={handleLogin} className="space-y-4">
-        <div className="space-y-1.5">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-            Email Address
-          </label>
-          <div className="relative">
-            <Mail className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="email"
-              required
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-              placeholder="admin@sparshacyber.com"
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-1.5">
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-            Password
-          </label>
-          <div className="relative">
-            <Lock className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-            <input
-              type="password"
-              required
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••••••"
-              className="w-full pl-10 pr-4 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500 transition"
-            />
-          </div>
-        </div>
-
-        <button
-          type="submit"
-          disabled={loading}
-          className="w-full py-3 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow-md transition flex items-center justify-center gap-2"
-        >
-          {loading ? (
-            <>
-              <Loader2 className="w-4 h-4 animate-spin" />
-              <span>Authenticating...</span>
-            </>
-          ) : (
-            <span>Sign In to Dashboard</span>
-          )}
-        </button>
-      </form>
-    </div>
-  );
-}
-
-export default function LoginPage() {
-  return (
-    <div className="min-h-[80vh] flex items-center justify-center p-4">
-      <Suspense fallback={
-        <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-slate-200 shadow-xl flex items-center justify-center">
-          <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-        </div>
-      }>
-        <LoginForm />
-      </Suspense>
     </div>
   );
 }
