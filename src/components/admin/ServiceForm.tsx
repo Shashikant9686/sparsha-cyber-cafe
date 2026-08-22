@@ -4,7 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import DynamicDocumentList from '@/components/DynamicDocumentList';
-import { Save, ArrowLeft, Loader2, IndianRupee, Tag } from 'lucide-react';
+import { Save, ArrowLeft, Loader2, IndianRupee } from 'lucide-react';
 import Link from 'next/link';
 
 interface ServiceFormProps {
@@ -12,15 +12,15 @@ interface ServiceFormProps {
   initialData?: {
     id?: string;
     title: string;
-    slug: string;
-    category: string;
-    short_description: string;
-    full_description: string;
-    official_fee: string;
-    service_charge: string;
-    processing_time: string;
-    required_documents: string[];
-    is_featured: boolean;
+    slug?: string;
+    category?: string;
+    short_description?: string;
+    full_description?: string;
+    official_fee?: string;
+    service_charge?: string;
+    processing_time?: string;
+    required_documents?: string[];
+    is_featured?: boolean;
   };
   isEditing?: boolean;
 }
@@ -35,21 +35,16 @@ export default function ServiceForm({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
+  // All non-essential fields default to completely blank
   const [title, setTitle] = useState(initialData?.title || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [category, setCategory] = useState(initialData?.category || 'Government & Certificate Services');
   const [shortDescription, setShortDescription] = useState(initialData?.short_description || '');
   const [fullDescription, setFullDescription] = useState(initialData?.full_description || '');
-  const [officialFee, setOfficialFee] = useState(initialData?.official_fee || '₹40');
-  const [serviceCharge, setServiceCharge] = useState(initialData?.service_charge || '₹50');
-  const [processingTime, setProcessingTime] = useState(initialData?.processing_time || '3 to 7 Working Days');
-  const [documents, setDocuments] = useState<string[]>(
-    initialData?.required_documents || [
-      'Aadhaar Card (Applicant & Parent)',
-      'Active Mobile Number for OTP',
-      'Passport Size Photo',
-    ]
-  );
+  const [officialFee, setOfficialFee] = useState(initialData?.official_fee || '');
+  const [serviceCharge, setServiceCharge] = useState(initialData?.service_charge || '');
+  const [processingTime, setProcessingTime] = useState(initialData?.processing_time || '');
+  const [documents, setDocuments] = useState<string[]>(initialData?.required_documents || []);
   const [isFeatured, setIsFeatured] = useState(initialData?.is_featured ?? true);
 
   useEffect(() => {
@@ -70,9 +65,9 @@ export default function ServiceForm({
           setCategory(data.category || 'Government & Certificate Services');
           setShortDescription(data.short_description || '');
           setFullDescription(data.full_description || '');
-          setOfficialFee(data.official_fee || '₹40');
-          setServiceCharge(data.service_charge || '₹50');
-          setProcessingTime(data.processing_time || '3 to 7 Working Days');
+          setOfficialFee(data.official_fee || '');
+          setServiceCharge(data.service_charge || '');
+          setProcessingTime(data.processing_time || '');
           setDocuments(data.required_documents || []);
           setIsFeatured(data.is_featured ?? true);
         }
@@ -109,13 +104,13 @@ export default function ServiceForm({
 
     const payload = {
       title,
-      slug: slug || title.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-'),
+      slug: slug.trim() || title.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-'),
       category,
-      short_description: shortDescription,
-      full_description: fullDescription,
-      official_fee: officialFee,
-      service_charge: serviceCharge,
-      processing_time: processingTime,
+      short_description: shortDescription.trim() || null,
+      full_description: fullDescription.trim() || null,
+      official_fee: officialFee.trim() || null,
+      service_charge: serviceCharge.trim() || null,
+      processing_time: processingTime.trim() || null,
       required_documents: documents,
       is_featured: isFeatured,
       updated_at: new Date().toISOString(),
@@ -176,19 +171,21 @@ export default function ServiceForm({
         </div>
       )}
 
-      {/* Main Info Card */}
+      {/* Core Service Info */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-5">
         <h2 className="text-sm font-bold text-slate-900">Service Core Details</h2>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Service Title</label>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Service Title <span className="text-rose-500">*</span>
+            </label>
             <input
               type="text"
               required
               value={title}
               onChange={(e) => handleAutoSlug(e.target.value)}
-              placeholder="e.g. Karnataka 371(J) Regional Quota Certificate"
+              placeholder="e.g. Passport Application / Ration Card Correction"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -197,10 +194,9 @@ export default function ServiceForm({
             <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">URL Slug</label>
             <input
               type="text"
-              required
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
-              placeholder="e.g. 371j-regional-certificate"
+              placeholder="e.g. passport-application (Auto-generated if blank)"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
@@ -223,79 +219,88 @@ export default function ServiceForm({
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Estimated Processing Time</label>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Estimated Processing Time <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
+            </label>
             <input
               type="text"
               value={processingTime}
               onChange={(e) => setProcessingTime(e.target.value)}
-              placeholder="e.g. Instant / 3 to 7 Working Days"
+              placeholder="Leave blank or enter (e.g. 7-15 Days)"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Short Tagline / Overview</label>
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+            Short Tagline / Overview <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
+          </label>
           <input
             type="text"
-            required
             value={shortDescription}
             onChange={(e) => setShortDescription(e.target.value)}
-            placeholder="Brief 1-sentence description..."
+            placeholder="Leave blank or enter brief overview..."
             className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
         <div className="space-y-1.5">
-          <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Detailed Guidelines & Rules</label>
+          <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+            Detailed Guidelines & Rules <span className="text-slate-400 font-normal text-[11px]">(Optional)</span>
+          </label>
           <textarea
             rows={4}
             value={fullDescription}
             onChange={(e) => setFullDescription(e.target.value)}
-            placeholder="Full explanation of eligibility rules..."
+            placeholder="Leave blank or enter eligibility rules..."
             className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </div>
 
-      {/* Fee Breakdown Card */}
+      {/* Pricing Details */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
         <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
           <IndianRupee className="w-4 h-4 text-emerald-600" />
-          Transparent Pricing Structure
+          Pricing Details <span className="text-slate-400 font-normal text-xs">(Optional — can leave blank)</span>
         </h2>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Official Government Fee</label>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Official Government Fee
+            </label>
             <input
               type="text"
               value={officialFee}
               onChange={(e) => setOfficialFee(e.target.value)}
-              placeholder="e.g. ₹40 or ₹0 (Free Portal)"
+              placeholder="Leave blank or enter (e.g. ₹40)"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
 
           <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">Cafe Operator Service Fee</label>
+            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
+              Cafe Operator Service Fee
+            </label>
             <input
               type="text"
               value={serviceCharge}
               onChange={(e) => setServiceCharge(e.target.value)}
-              placeholder="e.g. ₹50 (Scanning & Online Submission)"
+              placeholder="Leave blank or enter (e.g. ₹50)"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
             />
           </div>
         </div>
       </div>
 
-      {/* Mandatory Documents Checklist Builder */}
+      {/* Document Checklist Builder */}
       <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
         <div>
-          <h2 className="text-sm font-bold text-slate-900">Mandatory Document Checklist Builder</h2>
+          <h2 className="text-sm font-bold text-slate-900">Document Checklist Builder</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            These documents will appear on the public seva page and directly generate the customer's WhatsApp checklist.
+            Add requirements or leave empty if no documents are required.
           </p>
         </div>
 
