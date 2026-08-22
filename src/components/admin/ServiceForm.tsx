@@ -35,7 +35,7 @@ export default function ServiceForm({
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // All non-essential fields default to completely blank
+  // Form states with blank defaults for optional fields
   const [title, setTitle] = useState(initialData?.title || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [category, setCategory] = useState(initialData?.category || 'Government & Certificate Services');
@@ -89,8 +89,8 @@ export default function ServiceForm({
       setSlug(
         text
           .toLowerCase()
-          .replace(/[^\w ]+/g, '')
-          .replace(/ +/g, '-')
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)+/g, '')
       );
     }
   };
@@ -102,33 +102,39 @@ export default function ServiceForm({
 
     const targetId = initialServiceId || initialData?.id;
 
-    const payload = {
-      title,
-      slug: slug.trim() || title.toLowerCase().replace(/[^\w ]+/g, '').replace(/ +/g, '-'),
-      category,
+    const payload: Record<string, unknown> = {
+      title: title.trim(),
+      slug: slug.trim() || title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)+/g, ''),
+      category: category || 'Government & Certificate Services',
       short_description: shortDescription.trim() || null,
       full_description: fullDescription.trim() || null,
       official_fee: officialFee.trim() || null,
       service_charge: serviceCharge.trim() || null,
       processing_time: processingTime.trim() || null,
-      required_documents: documents,
+      required_documents: documents && documents.length > 0 ? documents : [],
       is_featured: isFeatured,
       updated_at: new Date().toISOString(),
     };
 
     try {
       const supabase = createClient();
+      let res;
       if (targetId) {
-        const { error } = await supabase.from('services').update(payload).eq('id', targetId);
-        if (error) throw error;
+        res = await supabase.from('services').update(payload).eq('id', targetId);
       } else {
-        const { error } = await supabase.from('services').insert([payload]);
-        if (error) throw error;
+        res = await supabase.from('services').insert([payload]);
+      }
+
+      if (res.error) {
+        console.error('Supabase Error:', res.error);
+        setErrorMsg(res.error.message || 'Database error occurred.');
+        return;
       }
 
       router.push('/admin/services');
       router.refresh();
     } catch (err: unknown) {
+      console.error('Submit Catch Error:', err);
       setErrorMsg(err instanceof Error ? err.message : 'Failed to save service configuration.');
     } finally {
       setSubmitting(false);
