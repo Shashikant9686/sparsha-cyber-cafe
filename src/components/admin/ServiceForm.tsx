@@ -9,54 +9,61 @@ import {
   Loader2, 
   Plus, 
   Trash2, 
-  Upload, 
-  X, 
-  GripVertical,
-  AlertCircle
+  GripVertical, 
+  AlertCircle,
+  FileText,
+  DollarSign,
+  ListOrdered,
+  HelpCircle,
+  Layers,
+  Image as ImageIcon
 } from 'lucide-react';
 import Link from 'next/link';
 
-interface Category {
+interface CategoryOption {
   id: string;
   name: string;
 }
 
-interface RequiredDocument {
+export interface DocumentItem {
   id?: string;
   document_name: string;
   is_mandatory: boolean;
-  description: string;
+  notes?: string;
   display_order: number;
 }
 
-interface ServiceImage {
+export interface FAQItem {
+  question: string;
+  answer: string;
+}
+
+export interface ServiceImageItem {
   id?: string;
   image_url: string;
-  alt_text: string;
+  caption?: string;
   display_order: number;
 }
 
-interface ServiceData {
+export interface ServiceFormData {
   id?: string;
   name: string;
   slug: string;
-  category_id: string;
-  short_description?: string | null;
-  full_description?: string | null;
+  category_id?: string | null;
+  submission_method?: string | null;
   fee?: number | null;
   service_charge?: number | null;
-  status: 'active' | 'inactive' | 'draft';
-  featured: boolean;
-  submission_method?: string | null;
-  official_link?: string | null;
-  custom_disclaimer?: string | null;
-  start_date?: string | null;
-  last_date?: string | null;
-  processing_time?: string | null;
+  estimated_days?: string | null;
+  prerequisites?: string | null;
+  steps?: string | null;
+  faq?: FAQItem[] | null;
+  status: 'active' | 'inactive' | 'draft' | string;
+  required_documents?: DocumentItem[];
+  service_images?: ServiceImageItem[];
 }
 
 interface ServiceFormProps {
-  initialData?: ServiceData | null;
+  initialData?: ServiceFormData | null;
   serviceId?: string;
 }
 
@@ -64,172 +71,156 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
   const router = useRouter();
   const supabase = createClient();
 
+  const [activeTab, setActiveTab] = useState<'basic' | 'pricing' | 'docs' | 'steps' | 'faq' | 'images'>('basic');
   const [loading, setLoading] = useState(false);
-  const [fetchingCategories, setFetchingCategories] = useState(true);
-  const [categories, setCategories] = useState<Category[]>([]);
+  const [categories, setCategories] = useState<CategoryOption[]>([]);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Canonical form states
+  // 1. Basic Information State
   const [name, setName] = useState(initialData?.name || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
-  const [shortDesc, setShortDesc] = useState(initialData?.short_description || '');
-  const [fullDesc, setFullDesc] = useState(initialData?.full_description || '');
-  const [fee, setFee] = useState<string>(initialData?.fee != null ? String(initialData.fee) : '');
-  const [serviceCharge, setServiceCharge] = useState<string>(initialData?.service_charge != null ? String(initialData.service_charge) : '');
-  const [status, setStatus] = useState<'active' | 'inactive' | 'draft'>(initialData?.status || 'active');
-  const [featured, setFeatured] = useState<boolean>(initialData?.featured || false);
-  const [submissionMethod, setSubmissionMethod] = useState<string>(initialData?.submission_method || 'Online');
-  const [officialLink, setOfficialLink] = useState(initialData?.official_link || '');
-  const [customDisclaimer, setCustomDisclaimer] = useState(initialData?.custom_disclaimer || '');
-  const [startDate, setStartDate] = useState(initialData?.start_date ? initialData.start_date.substring(0, 10) : '');
-  const [lastDate, setLastDate] = useState(initialData?.last_date ? initialData.last_date.substring(0, 10) : '');
-  const [processingTime, setProcessingTime] = useState(initialData?.processing_time || '');
+  const [submissionMethod, setSubmissionMethod] = useState(initialData?.submission_method || 'Online Application / Seva Sindhu');
+  const [estimatedDays, setEstimatedDays] = useState(initialData?.estimated_days || '7 to 15 working days');
+  const [status, setStatus] = useState(initialData?.status?.toLowerCase() || 'active');
 
-  // Sub-entity states
-  const [documents, setDocuments] = useState<RequiredDocument[]>([]);
-  const [images, setImages] = useState<ServiceImage[]>([]);
-  const [uploadingImage, setUploadingImage] = useState(false);
+  // 2. Pricing State
+  const [fee, setFee] = useState<string | number>(initialData?.fee ?? '');
+  const [serviceCharge, setServiceCharge] = useState<string | number>(initialData?.service_charge ?? '');
 
+  // 3. Prerequisites & Steps
+  const [prerequisites, setPrerequisites] = useState(initialData?.prerequisites || '');
+  const [steps, setSteps] = useState(initialData?.steps || '');
+
+  // 4. Dynamic Required Documents List
+  const [docs, setDocs] = useState<DocumentItem[]>(
+    initialData?.required_documents && initialData.required_documents.length > 0
+      ? initialData.required_documents.map((d, index) => ({
+          id: d.id,
+          document_name: d.document_name || '',
+          is_mandatory: d.is_mandatory ?? true,
+          notes: d.notes || '',
+          display_order: d.display_order ?? index + 1
+        }))
+      : [
+          { document_name: 'Aadhaar Card', is_mandatory: true, notes: 'Original or clear Xerox', display_order: 1 },
+          { document_name: 'Ration Card / Address Proof', is_mandatory: true, notes: '', display_order: 2 }
+        ]
+  );
+
+  // 5. Dynamic FAQs List
+  const [faqs, setFaqs] = useState<FAQItem[]>(
+    Array.isArray(initialData?.faq) && initialData.faq.length > 0
+      ? initialData.faq
+      : [
+          { question: 'What is the standard processing time?', answer: 'Applications typically take 7 to 15 working days depending on tahsil office clearance.' }
+        ]
+  );
+
+  // 6. Dynamic Images Gallery List
+  const [images, setImages] = useState<ServiceImageItem[]>(
+    initialData?.service_images && initialData.service_images.length > 0
+      ? initialData.service_images
+      : []
+  );
+
+  // Load Categories Dropdown
   useEffect(() => {
-    async function loadFormDependencies() {
-      setFetchingCategories(true);
-      try {
-        const { data: catData, error: catError } = await supabase
-          .from('categories')
-          .select('id, name')
-          .order('name');
-        
-        if (!catError && catData) {
-          setCategories(catData);
-          if (!categoryId && catData.length > 0 && !initialData) {
-            setCategoryId(catData[0].id);
-          }
-        }
-
-        if (serviceId) {
-          const { data: docData } = await supabase
-            .from('required_documents')
-            .select('*')
-            .eq('service_id', serviceId)
-            .order('display_order', { ascending: true });
-
-          if (docData) {
-            setDocuments(docData.map((d) => ({
-              id: d.id,
-              document_name: d.document_name,
-              is_mandatory: d.is_mandatory ?? true,
-              description: d.description || '',
-              display_order: d.display_order || 0
-            })));
-          }
-
-          const { data: imgData } = await supabase
-            .from('service_images')
-            .select('*')
-            .eq('service_id', serviceId)
-            .order('display_order', { ascending: true });
-
-          if (imgData) {
-            setImages(imgData);
-          }
-        }
-      } catch (err: unknown) {
-        console.error('Error loading form dependencies:', err);
-      } finally {
-        setFetchingCategories(false);
-      }
+    async function loadCategories() {
+      const { data } = await supabase
+        .from('categories')
+        .select('id, name')
+        .order('display_order', { ascending: true });
+      if (data) setCategories(data);
     }
+    loadCategories();
+  }, [supabase]);
 
-    loadFormDependencies();
-  }, [serviceId, initialData, supabase, categoryId]);
-
-  const generateSlug = (val: string) => {
-    return val
-      .toLowerCase()
-      .trim()
-      .replace(/[^a-z0-9\s-]/g, '')
-      .replace(/\s+/g, '-')
-      .replace(/-+/g, '-');
-  };
-
+  // Automatic Slug Generator
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setName(val);
-    if (!serviceId) {
-      setSlug(generateSlug(val));
+    if (!serviceId && (!slug || slug === '')) {
+      setSlug(
+        val
+          .toLowerCase()
+          .replace(/[^\w\s-]/g, '')
+          .replace(/[\s_-]+/g, '-')
+          .replace(/^-+|-+$/g, '')
+      );
     }
   };
 
-  const addDocument = () => {
-    setDocuments((prev) => [
+  // Checklist Helpers
+  const addDocItem = () => {
+    setDocs((prev) => [
       ...prev,
       {
         document_name: '',
         is_mandatory: true,
-        description: '',
+        notes: '',
         display_order: prev.length + 1
       }
     ]);
   };
 
-  const updateDocument = (index: number, field: keyof RequiredDocument, value: unknown) => {
-    setDocuments((prev) => {
+  const updateDocItem = (index: number, field: keyof DocumentItem, value: unknown) => {
+    setDocs((prev) => {
       const next = [...prev];
       next[index] = { ...next[index], [field]: value };
       return next;
     });
   };
 
-  const removeDocument = (index: number) => {
-    setDocuments((prev) => prev.filter((_, i) => i !== index));
+  const removeDocItem = (index: number) => {
+    setDocs((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
-
-    setUploadingImage(true);
-    try {
-      const file = files[0];
-      const fileExt = file.name.split('.').pop();
-      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
-      const filePath = `services/${fileName}`;
-
-      const { error: uploadError } = await supabase.storage
-        .from('service-images')
-        .upload(filePath, file);
-
-      if (uploadError) throw uploadError;
-
-      const { data: publicUrlData } = supabase.storage
-        .from('service-images')
-        .getPublicUrl(filePath);
-
-      setImages((prev) => [
-        ...prev,
-        {
-          image_url: publicUrlData.publicUrl,
-          alt_text: name || 'Service poster',
-          display_order: prev.length + 1
-        }
-      ]);
-    } catch (err: unknown) {
-      console.error('Image upload failed:', err);
-      setErrorMsg(err instanceof Error ? err.message : 'Image upload failed');
-    } finally {
-      setUploadingImage(false);
-    }
+  // FAQ Helpers
+  const addFaqItem = () => {
+    setFaqs((prev) => [...prev, { question: '', answer: '' }]);
   };
 
-  const removeImage = (index: number) => {
+  const updateFaqItem = (index: number, field: keyof FAQItem, value: string) => {
+    setFaqs((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const removeFaqItem = (index: number) => {
+    setFaqs((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  // Image Helpers
+  const addImageItem = () => {
+    setImages((prev) => [...prev, { image_url: '', caption: '', display_order: prev.length + 1 }]);
+  };
+
+  const updateImageItem = (index: number, field: keyof ServiceImageItem, value: unknown) => {
+    setImages((prev) => {
+      const next = [...prev];
+      next[index] = { ...next[index], [field]: value };
+      return next;
+    });
+  };
+
+  const removeImageItem = (index: number) => {
     setImages((prev) => prev.filter((_, i) => i !== index));
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
+  // Form Submit Handler
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (!name.trim()) {
       setErrorMsg('Service name is required');
+      setActiveTab('basic');
+      return;
+    }
+    if (!slug.trim()) {
+      setErrorMsg('URL slug is required');
+      setActiveTab('basic');
       return;
     }
 
@@ -237,80 +228,88 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
     setErrorMsg(null);
 
     try {
-      const canonicalPayload = {
+      const cleanFaqs = faqs.filter((f) => f.question.trim() !== '' && f.answer.trim() !== '');
+
+      const servicePayload = {
         name: name.trim(),
-        slug: slug.trim() || generateSlug(name),
+        slug: slug.trim(),
         category_id: categoryId || null,
-        short_description: shortDesc.trim() || null,
-        full_description: fullDesc.trim() || null,
-        fee: fee === '' ? null : parseFloat(fee),
-        service_charge: serviceCharge === '' ? null : parseFloat(serviceCharge),
-        status,
-        featured,
-        submission_method: submissionMethod,
-        official_link: officialLink.trim() || null,
-        custom_disclaimer: customDisclaimer.trim() || null,
-        start_date: startDate ? new Date(startDate).toISOString() : null,
-        last_date: lastDate ? new Date(lastDate).toISOString() : null,
-        processing_time: processingTime.trim() || null,
+        submission_method: submissionMethod.trim() || null,
+        fee: fee === '' ? null : Number(fee),
+        service_charge: serviceCharge === '' ? null : Number(serviceCharge),
+        estimated_days: estimatedDays.trim() || null,
+        prerequisites: prerequisites.trim() || null,
+        steps: steps.trim() || null,
+        faq: cleanFaqs.length > 0 ? cleanFaqs : null,
+        status: status.toLowerCase(),
         updated_at: new Date().toISOString()
       };
 
       let activeServiceId = serviceId;
 
       if (activeServiceId) {
-        const { error: updateError } = await supabase
+        const { error } = await supabase
           .from('services')
-          .update(canonicalPayload)
+          .update(servicePayload)
           .eq('id', activeServiceId);
 
-        if (updateError) throw updateError;
+        if (error) throw error;
       } else {
-        const { data: newService, error: insertError } = await supabase
+        const { data, error } = await supabase
           .from('services')
-          .insert([canonicalPayload])
+          .insert([servicePayload])
           .select()
           .single();
 
-        if (insertError) throw insertError;
-        activeServiceId = newService.id;
+        if (error) throw error;
+        activeServiceId = data.id;
       }
 
       if (activeServiceId) {
-        // Sync required documents
-        await supabase.from('required_documents').delete().eq('service_id', activeServiceId);
-        if (documents.length > 0) {
-          const docPayload = documents
-            .filter((d) => d.document_name.trim() !== '')
-            .map((d, index) => ({
-              service_id: activeServiceId,
-              document_name: d.document_name.trim(),
-              is_mandatory: d.is_mandatory,
-              description: d.description?.trim() || null,
-              display_order: index + 1
-            }));
+        // 1. Sync required_documents table
+        await supabase
+          .from('required_documents')
+          .delete()
+          .eq('service_id', activeServiceId);
 
-          if (docPayload.length > 0) {
-            const { error: docError } = await supabase
-              .from('required_documents')
-              .insert(docPayload);
-            if (docError) console.error('Error inserting documents:', docError);
-          }
-        }
-
-        // Sync service images
-        await supabase.from('service_images').delete().eq('service_id', activeServiceId);
-        if (images.length > 0) {
-          const imgPayload = images.map((img, index) => ({
+        const validDocs = docs
+          .filter((d) => d.document_name.trim() !== '')
+          .map((d, index) => ({
             service_id: activeServiceId,
-            image_url: img.image_url,
-            alt_text: img.alt_text || name,
+            document_name: d.document_name.trim(),
+            is_mandatory: Boolean(d.is_mandatory),
+            notes: d.notes?.trim() || null,
             display_order: index + 1
           }));
 
+        if (validDocs.length > 0) {
+          const { error: docError } = await supabase
+            .from('required_documents')
+            .insert(validDocs);
+
+          if (docError) console.error('Error inserting documents:', docError);
+        }
+
+        // 2. Sync service_images table
+        await supabase
+          .from('service_images')
+          .delete()
+          .eq('service_id', activeServiceId);
+
+        const validImages = images
+          .filter((img) => img.image_url.trim() !== '')
+          .map((img, index) => ({
+            service_id: activeServiceId,
+            image_url: img.image_url.trim(),
+            caption: img.caption?.trim() || null,
+            display_order: index + 1
+          }));
+
+        if (validImages.length > 0) {
           const { error: imgError } = await supabase
             .from('service_images')
-            .insert(imgPayload);
+            .insert(validImages);
+
           if (imgError) console.error('Error inserting images:', imgError);
         }
       }
@@ -318,7 +317,7 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
       router.push('/admin/services');
       router.refresh();
     } catch (err: unknown) {
-      console.error('Error saving service:', err);
+      console.error('Failed to save service:', err);
       setErrorMsg(err instanceof Error ? err.message : 'Failed to save service');
     } finally {
       setLoading(false);
@@ -326,329 +325,454 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
   };
 
   return (
-    <form onSubmit={handleSubmit} className="max-w-4xl mx-auto space-y-8 pb-16">
-      {/* Header */}
-      <div className="flex items-center justify-between">
+    <form onSubmit={handleSubmit} className="max-w-5xl mx-auto space-y-6 pb-20">
+      {/* Top Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white p-6 rounded-3xl border border-slate-200 shadow-xs">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/services"
-            className="p-2 text-slate-500 hover:text-slate-800 hover:bg-slate-100 rounded-xl transition"
+            className="p-2.5 text-slate-500 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
           >
             <ArrowLeft className="w-5 h-5" />
           </Link>
           <div>
-            <h1 className="text-xl font-bold text-slate-900">
+            <h1 className="text-lg font-bold text-slate-900">
               {serviceId ? 'Edit Service' : 'Add New Service'}
             </h1>
             <p className="text-xs text-slate-500">
-              Configure canonical metadata, requirements, and official fees
+              Configure pricing, WhatsApp checklist documents, steps, and FAQs
             </p>
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={loading}
-          className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
-        >
-          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
-          <span>{serviceId ? 'Save Changes' : 'Publish Service'}</span>
-        </button>
+        <div className="flex items-center gap-3">
+          <Link
+            href="/admin/services"
+            className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
+          >
+            Cancel
+          </Link>
+          <button
+            type="submit"
+            disabled={loading}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+          >
+            {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+            <span>{serviceId ? 'Save Changes' : 'Publish Service'}</span>
+          </button>
+        </div>
       </div>
 
       {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs">
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs font-medium">
           <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
           <span>{errorMsg}</span>
         </div>
       )}
 
-      {/* Main Info Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">General Information</h2>
+      {/* Navigation Tabs */}
+      <div className="flex items-center gap-2 overflow-x-auto pb-2 border-b border-slate-200 text-xs font-bold">
+        <button
+          type="button"
+          onClick={() => setActiveTab('basic')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0 ${
+            activeTab === 'basic' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <Layers className="w-4 h-4" />
+          <span>1. General Info</span>
+        </button>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <div className="space-y-1 sm:col-span-2">
-            <label className="text-xs font-bold text-slate-700">Service Name *</label>
-            <input
-              type="text"
-              required
-              value={name}
-              onChange={handleNameChange}
-              placeholder="e.g. Karnataka 371(J) Eligibility Certificate"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
-          </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('pricing')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0 ${
+            activeTab === 'pricing' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <DollarSign className="w-4 h-4" />
+          <span>2. Pricing & Timelines</span>
+        </button>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">URL Slug *</label>
-            <input
-              type="text"
-              required
-              value={slug}
-              onChange={(e) => setSlug(e.target.value)}
-              placeholder="karnataka-371j-certificate"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
-          </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('docs')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0 ${
+            activeTab === 'docs' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <FileText className="w-4 h-4" />
+          <span>3. Required Documents ({docs.length})</span>
+        </button>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Category</label>
-            <select
-              value={categoryId}
-              onChange={(e) => setCategoryId(e.target.value)}
-              disabled={fetchingCategories}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            >
-              <option value="">Select Category</option>
-              {categories.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-          </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('steps')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0 ${
+            activeTab === 'steps' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <ListOrdered className="w-4 h-4" />
+          <span>4. Eligibility & Steps</span>
+        </button>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Estimated Processing Time (OPTIONAL)</label>
-            <input
-              type="text"
-              value={processingTime}
-              onChange={(e) => setProcessingTime(e.target.value)}
-              placeholder="e.g. 7 to 15 working days"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
-          </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('faq')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0 ${
+            activeTab === 'faq' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <HelpCircle className="w-4 h-4" />
+          <span>5. FAQs ({faqs.length})</span>
+        </button>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Status</label>
-            <select
-              value={status}
-              onChange={(e) => setStatus(e.target.value as 'active' | 'inactive' | 'draft')}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition capitalize"
-            >
-              <option value="active">Active</option>
-              <option value="draft">Draft</option>
-              <option value="inactive">Inactive</option>
-            </select>
-          </div>
-
-          <div className="space-y-1 sm:col-span-2">
-            <label className="text-xs font-bold text-slate-700">Short Summary</label>
-            <input
-              type="text"
-              value={shortDesc}
-              onChange={(e) => setShortDesc(e.target.value)}
-              placeholder="Brief 1-sentence overview displayed on card listings"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
-          </div>
-
-          <div className="space-y-1 sm:col-span-2">
-            <label className="text-xs font-bold text-slate-700">Full Description & Details</label>
-            <textarea
-              rows={4}
-              value={fullDesc}
-              onChange={(e) => setFullDesc(e.target.value)}
-              placeholder="Full procedural instructions and eligibility specifications..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
-          </div>
-        </div>
+        <button
+          type="button"
+          onClick={() => setActiveTab('images')}
+          className={`flex items-center gap-2 px-4 py-2.5 rounded-xl transition cursor-pointer shrink-0 ${
+            activeTab === 'images' ? 'bg-blue-600 text-white shadow-xs' : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+          }`}
+        >
+          <ImageIcon className="w-4 h-4" />
+          <span>6. Images ({images.length})</span>
+        </button>
       </div>
 
-      {/* Pricing & Logistics */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Fees & Dates</h2>
+      {/* Tab 1: General Info */}
+      {activeTab === 'basic' && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">General Information</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="space-y-1 sm:col-span-2">
+              <label className="text-xs font-bold text-slate-700">Service Name *</label>
+              <input
+                type="text"
+                required
+                value={name}
+                onChange={handleNameChange}
+                placeholder="e.g. Karnataka 371(J) Regional Reservation Certificate"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
+            </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Government Fee (₹)</label>
-            <input
-              type="number"
-              step="any"
-              value={fee}
-              onChange={(e) => setFee(e.target.value)}
-              placeholder="0 or empty"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">URL Slug *</label>
+              <input
+                type="text"
+                required
+                value={slug}
+                onChange={(e) => setSlug(e.target.value)}
+                placeholder="e.g. karnataka-371-j-regional-reservation-certificate"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">Category</label>
+              <select
+                value={categoryId}
+                onChange={(e) => setCategoryId(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              >
+                <option value="">Select Category...</option>
+                {categories.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.name}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">Submission Method / Channel</label>
+              <input
+                type="text"
+                value={submissionMethod}
+                onChange={(e) => setSubmissionMethod(e.target.value)}
+                placeholder="e.g. Seva Sindhu Portal / Tahsildar Verification"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">Publication Status</label>
+              <select
+                value={status}
+                onChange={(e) => setStatus(e.target.value)}
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              >
+                <option value="active">Active (Visible to public)</option>
+                <option value="inactive">Inactive (Hidden)</option>
+                <option value="draft">Draft (Hidden)</option>
+              </select>
+            </div>
           </div>
+        </div>
+      )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Cafe Service Charge (₹)</label>
-            <input
-              type="number"
-              step="any"
-              value={serviceCharge}
-              onChange={(e) => setServiceCharge(e.target.value)}
-              placeholder="0 or empty"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
+      {/* Tab 2: Pricing & Timelines */}
+      {activeTab === 'pricing' && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Pricing & Time Estimates</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">Govt Official Fee (₹)</label>
+              <input
+                type="number"
+                step="any"
+                value={fee}
+                onChange={(e) => setFee(e.target.value)}
+                placeholder="e.g. 50"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
+              <p className="text-[10px] text-slate-400">Direct statutory government portal fee</p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">Cyber Cafe Service Fee (₹)</label>
+              <input
+                type="number"
+                step="any"
+                value={serviceCharge}
+                onChange={(e) => setServiceCharge(e.target.value)}
+                placeholder="e.g. 100"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
+              <p className="text-[10px] text-slate-400">Application filing and scanning charges</p>
+            </div>
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">Estimated Processing Time</label>
+              <input
+                type="text"
+                value={estimatedDays}
+                onChange={(e) => setEstimatedDays(e.target.value)}
+                placeholder="e.g. 7 to 15 working days"
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
+              <p className="text-[10px] text-slate-400">Expected turnaround time</p>
+            </div>
           </div>
+        </div>
+      )}
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Submission Mode</label>
-            <select
-              value={submissionMethod}
-              onChange={(e) => setSubmissionMethod(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+      {/* Tab 3: Required Documents Checklist */}
+      {activeTab === 'docs' && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+                Required Documents Checklist
+              </h2>
+              <p className="text-xs text-slate-500">
+                These documents will populate the instant WhatsApp shareable checklist for customers
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={addDocItem}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition cursor-pointer"
             >
-              <option value="Online">Online</option>
-              <option value="Offline">Offline</option>
-              <option value="Both">Both (Online / In-Person)</option>
-            </select>
+              <Plus className="w-4 h-4" />
+              <span>Add Document</span>
+            </button>
           </div>
 
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Start Date</label>
-            <input
-              type="date"
-              value={startDate}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Last Date</label>
-            <input
-              type="date"
-              value={lastDate}
-              onChange={(e) => setLastDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Official Portal Link</label>
-            <input
-              type="url"
-              value={officialLink}
-              onChange={(e) => setOfficialLink(e.target.value)}
-              placeholder="https://..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
-          </div>
-
-          <div className="space-y-1 sm:col-span-2 lg:col-span-3">
-            <label className="text-xs font-bold text-slate-700">Important Disclaimer / Notice</label>
-            <textarea
-              rows={2}
-              value={customDisclaimer}
-              onChange={(e) => setCustomDisclaimer(e.target.value)}
-              placeholder="Custom disclaimer notes, eligibility conditions, or warning banners..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
-            />
-          </div>
-
-          <div className="flex items-center gap-2 pt-2 sm:col-span-2">
-            <input
-              type="checkbox"
-              id="featured_checkbox"
-              checked={featured}
-              onChange={(e) => setFeatured(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded-sm border-slate-300 focus:ring-blue-500"
-            />
-            <label htmlFor="featured_checkbox" className="text-xs font-bold text-slate-700 select-none cursor-pointer">
-              Mark as Featured Service (Highlighted on Home & Top Categories)
-            </label>
-          </div>
-        </div>
-      </div>
-
-      {/* Required Documents Checklist */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Required Documents</h2>
-            <p className="text-xs text-slate-500">Add documents customers must bring for this application</p>
-          </div>
-          <button
-            type="button"
-            onClick={addDocument}
-            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition cursor-pointer"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add Item</span>
-          </button>
-        </div>
-
-        <div className="space-y-3 pt-2">
-          {documents.map((doc, idx) => (
-            <div key={idx} className="flex items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
-              <GripVertical className="w-4 h-4 text-slate-400 mt-2.5 shrink-0" />
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
-                <input
-                  type="text"
-                  placeholder="Document Name (e.g. 10 Years Study Certificate)"
-                  value={doc.document_name}
-                  onChange={(e) => updateDocument(idx, 'document_name', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
-                />
-                <input
-                  type="text"
-                  placeholder="Specifications / Instructions (Optional)"
-                  value={doc.description}
-                  onChange={(e) => updateDocument(idx, 'description', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden sm:col-span-2"
-                />
-              </div>
-              <div className="flex items-center gap-2 shrink-0 pt-2">
-                <label className="flex items-center gap-1 text-[11px] font-bold text-slate-600 cursor-pointer">
+          <div className="space-y-3 pt-2">
+            {docs.map((docItem, idx) => (
+              <div
+                key={idx}
+                className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl"
+              >
+                <GripVertical className="w-4 h-4 text-slate-400 shrink-0" />
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-12 gap-2 items-center">
                   <input
-                    type="checkbox"
-                    checked={doc.is_mandatory}
-                    onChange={(e) => updateDocument(idx, 'is_mandatory', e.target.checked)}
-                    className="w-3.5 h-3.5 text-blue-600 rounded-sm border-slate-300"
+                    type="text"
+                    placeholder="Document Name (e.g. 1st to 10th Study Certificate)"
+                    value={docItem.document_name}
+                    onChange={(e) => updateDocItem(idx, 'document_name', e.target.value)}
+                    className="sm:col-span-6 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
                   />
-                  <span>Mandatory</span>
-                </label>
+                  <input
+                    type="text"
+                    placeholder="Notes (e.g. BEO Counter-signed original)"
+                    value={docItem.notes || ''}
+                    onChange={(e) => updateDocItem(idx, 'notes', e.target.value)}
+                    className="sm:col-span-4 px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
+                  />
+                  <label className="sm:col-span-2 flex items-center gap-1.5 text-xs text-slate-700 font-bold px-2 py-1">
+                    <input
+                      type="checkbox"
+                      checked={docItem.is_mandatory}
+                      onChange={(e) => updateDocItem(idx, 'is_mandatory', e.target.checked)}
+                      className="w-4 h-4 text-blue-600 rounded border-slate-300 focus:ring-blue-500"
+                    />
+                    <span>Mandatory</span>
+                  </label>
+                </div>
                 <button
                   type="button"
-                  onClick={() => removeDocument(idx)}
-                  className="p-1 text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                  onClick={() => removeDocItem(idx)}
+                  className="p-2 text-slate-400 hover:text-rose-600 transition cursor-pointer shrink-0"
                 >
                   <Trash2 className="w-4 h-4" />
                 </button>
               </div>
-            </div>
-          ))}
-          {documents.length === 0 && (
-            <p className="text-xs text-slate-400 italic py-2 text-center">No required documents added yet.</p>
-          )}
-        </div>
-      </div>
+            ))}
 
-      {/* Posters & Flyers */}
-      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
-        <div className="flex items-center justify-between">
-          <div>
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Flyers & Posters</h2>
-            <p className="text-xs text-slate-500">Upload official notification brochures or poster previews</p>
+            {docs.length === 0 && (
+              <p className="text-xs text-slate-400 italic py-4 text-center">
+                No documents added yet. Click &quot;Add Document&quot; above.
+              </p>
+            )}
           </div>
-          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer">
-            {uploadingImage ? <Loader2 className="w-4 h-4 animate-spin" /> : <Upload className="w-4 h-4" />}
-            <span>Upload Poster</span>
-            <input type="file" accept="image/*" onChange={handleImageUpload} disabled={uploadingImage} className="hidden" />
-          </label>
         </div>
+      )}
 
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-2">
-          {images.map((img, idx) => (
-            <div key={idx} className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50 aspect-video sm:aspect-square">
-              {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={img.image_url} alt={img.alt_text} className="w-full h-full object-cover" />
-              <button
-                type="button"
-                onClick={() => removeImage(idx)}
-                className="absolute top-2 right-2 p-1.5 bg-black/60 text-white rounded-full hover:bg-rose-600 transition opacity-0 group-hover:opacity-100 cursor-pointer"
-              >
-                <X className="w-3.5 h-3.5" />
-              </button>
+      {/* Tab 4: Eligibility & Steps */}
+      {activeTab === 'steps' && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Eligibility & Procedures</h2>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">Prerequisites / Eligibility Criteria</label>
+              <textarea
+                rows={4}
+                value={prerequisites}
+                onChange={(e) => setPrerequisites(e.target.value)}
+                placeholder="Detail who qualifies for this service (e.g. 10 years continuous schooling in Hyderabad-Karnataka region)..."
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
             </div>
-          ))}
+
+            <div className="space-y-1">
+              <label className="text-xs font-bold text-slate-700">Step-by-Step Procedure</label>
+              <textarea
+                rows={4}
+                value={steps}
+                onChange={(e) => setSteps(e.target.value)}
+                placeholder="1. Document verification at Sparsha Cyber Cafe.&#10;2. Online application submission on Seva Sindhu.&#10;3. Field verification by Revenue Inspector.&#10;4. Certificate issuance."
+                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+              />
+            </div>
+          </div>
         </div>
-      </div>
+      )}
+
+      {/* Tab 5: Dynamic FAQs */}
+      {activeTab === 'faq' && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Frequently Asked Questions</h2>
+              <p className="text-xs text-slate-500">Provide direct answers to common customer inquiries</p>
+            </div>
+            <button
+              type="button"
+              onClick={addFaqItem}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add FAQ</span>
+            </button>
+          </div>
+
+          <div className="space-y-4 pt-2">
+            {faqs.map((faq, idx) => (
+              <div key={idx} className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-2 relative">
+                <div className="flex items-center justify-between">
+                  <span className="text-[11px] font-bold text-slate-500 uppercase tracking-wider">Question #{idx + 1}</span>
+                  <button
+                    type="button"
+                    onClick={() => removeFaqItem(idx)}
+                    className="text-slate-400 hover:text-rose-600 transition cursor-pointer"
+                  >
+                    <Trash2 className="w-4 h-4" />
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  placeholder="e.g. Can I apply if I lost my original marks card?"
+                  value={faq.question}
+                  onChange={(e) => updateFaqItem(idx, 'question', e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
+                />
+                <textarea
+                  rows={2}
+                  placeholder="Answer..."
+                  value={faq.answer}
+                  onChange={(e) => updateFaqItem(idx, 'answer', e.target.value)}
+                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
+                />
+              </div>
+            ))}
+
+            {faqs.length === 0 && (
+              <p className="text-xs text-slate-400 italic py-4 text-center">
+                No FAQs defined. Click &quot;Add FAQ&quot; to provide helpful tips.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
+
+      {/* Tab 6: Images Gallery */}
+      {activeTab === 'images' && (
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Attached Images & Samples</h2>
+              <p className="text-xs text-slate-500">Provide sample certificate formats or illustrative screenshots</p>
+            </div>
+            <button
+              type="button"
+              onClick={addImageItem}
+              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition cursor-pointer"
+            >
+              <Plus className="w-4 h-4" />
+              <span>Add Image</span>
+            </button>
+          </div>
+
+          <div className="space-y-3 pt-2">
+            {images.map((img, idx) => (
+              <div key={idx} className="flex items-center gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl">
+                <GripVertical className="w-4 h-4 text-slate-400 shrink-0" />
+                <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                  <input
+                    type="url"
+                    placeholder="Image URL (e.g. Supabase Storage URL)"
+                    value={img.image_url}
+                    onChange={(e) => updateImageItem(idx, 'image_url', e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
+                  />
+                  <input
+                    type="text"
+                    placeholder="Caption / Description (Optional)"
+                    value={img.caption || ''}
+                    onChange={(e) => updateImageItem(idx, 'caption', e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
+                  />
+                </div>
+                <button
+                  type="button"
+                  onClick={() => removeImageItem(idx)}
+                  className="p-2 text-slate-400 hover:text-rose-600 transition cursor-pointer shrink-0"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            ))}
+
+            {images.length === 0 && (
+              <p className="text-xs text-slate-400 italic py-4 text-center">
+                No images attached. Click &quot;Add Image&quot; to upload samples.
+              </p>
+            )}
+          </div>
+        </div>
+      )}
     </form>
   );
 }
