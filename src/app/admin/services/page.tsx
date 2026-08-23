@@ -9,13 +9,12 @@ interface ServiceRecord {
   id: string;
   name: string;
   slug: string;
-  status: 'active' | 'inactive' | 'draft';
+  status: string;
   fee: number | null;
   service_charge: number | null;
   submission_method: string | null;
-  categories: {
-    name: string;
-  } | null;
+  category_id: string | null;
+  category_name?: string;
 }
 
 export default function AdminServicesPage() {
@@ -35,14 +34,28 @@ export default function AdminServicesPage() {
         setLoading(true);
         setErrorMsg(null);
 
-        const { data, error } = await supabase
+        // 1. Fetch all services
+        const { data: servicesData, error: servicesError } = await supabase
           .from('services')
-          .select('id, name, slug, status, fee, service_charge, submission_method, categories(name)')
+          .select('id, name, slug, status, fee, service_charge, submission_method, category_id')
           .order('created_at', { ascending: false });
 
-        if (error) throw error;
+        if (servicesError) throw servicesError;
+
+        // 2. Fetch categories map
+        const { data: categoriesData } = await supabase
+          .from('categories')
+          .select('id, name');
+
+        const catMap = new Map((categoriesData || []).map((c) => [c.id, c.name]));
+
+        const combined = (servicesData || []).map((s) => ({
+          ...s,
+          category_name: s.category_id ? catMap.get(s.category_id) || '—' : '—'
+        }));
+
         if (isMounted) {
-          setServices((data as unknown as ServiceRecord[]) || []);
+          setServices(combined);
         }
       } catch (err: unknown) {
         console.error('Failed to fetch services:', err);
@@ -84,8 +97,8 @@ export default function AdminServicesPage() {
   };
 
   const filtered = services.filter((s) =>
-    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    s.categories?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+    (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.category_name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -146,37 +159,30 @@ export default function AdminServicesPage() {
                   <th className="py-3.5 px-4">Service Name</th>
                   <th className="py-3.5 px-4">Category</th>
                   <th className="py-3.5 px-4">Pricing</th>
-                  <th className="py-3.5 px-4">
-                    <div className="flex items-center gap-1">
-                      <span>Status</span>
-                      <span className="text-[10px] lowercase font-normal text-slate-400">(only active is public)</span>
-                    </div>
-                  </th>
+                  <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {filtered.map((item) => {
-                  const isPublic = item.status === 'active';
+                  const isPublic = (item.status || '').toLowerCase() === 'active';
                   return (
                     <tr key={item.id} className="hover:bg-slate-50/70 transition">
                       <td className="py-3.5 px-4 font-bold text-slate-900">
                         <div className="flex items-center gap-2">
                           <span>{item.name}</span>
-                          {isPublic && (
-                            <Link
-                              href={`/services/${item.slug}`}
-                              target="_blank"
-                              className="text-slate-400 hover:text-blue-600 transition"
-                              title="View public page"
-                            >
-                              <ExternalLink className="w-3.5 h-3.5" />
-                            </Link>
-                          )}
+                          <Link
+                            href={`/services/${item.slug}`}
+                            target="_blank"
+                            className="text-slate-400 hover:text-blue-600 transition"
+                            title="View public page"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
                         </div>
                       </td>
                       <td className="py-3.5 px-4 font-medium text-slate-600">
-                        {item.categories?.name || '—'}
+                        {item.category_name}
                       </td>
                       <td className="py-3.5 px-4 font-medium">
                         {item.fee != null || item.service_charge != null ? (
@@ -188,25 +194,22 @@ export default function AdminServicesPage() {
                         )}
                       </td>
                       <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${
-                              item.status === 'active'
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : item.status === 'draft'
-                                ? 'bg-amber-50 text-amber-700'
-                                : 'bg-slate-100 text-slate-600'
-                            }`}
-                          >
-                            {isPublic ? <Eye className="w-3 h-3 text-emerald-600" /> : <EyeOff className="w-3 h-3 text-slate-400" />}
-                            <span>{item.status}</span>
-                          </span>
-                        </div>
+                        <span
+                          className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${
+                            isPublic
+                              ? 'bg-emerald-50 text-emerald-700'
+                              : 'bg-amber-50 text-amber-700'
+                          }`}
+                        >
+                          {isPublic ? <Eye className="w-3 h-3 text-emerald-600" /> : <EyeOff className="w-3 h-3 text-slate-400" />}
+                          <span>{item.status || 'draft'}</span>
+                        </span>
                       </td>
                       <td className="py-3.5 px-4 text-right space-x-2">
                         <Link
                           href={`/admin/services/${item.id}`}
                           className="inline-flex p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                          title="Edit Service"
                         >
                           <Edit3 className="w-4 h-4" />
                         </Link>
@@ -215,6 +218,7 @@ export default function AdminServicesPage() {
                           onClick={() => handleDelete(item.id, item.name)}
                           disabled={deletingId === item.id}
                           className="inline-flex p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
+                          title="Delete Service"
                         >
                           {deletingId === item.id ? (
                             <Loader2 className="w-4 h-4 animate-spin" />
