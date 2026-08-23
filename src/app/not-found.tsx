@@ -1,32 +1,39 @@
 import React from 'react';
 import Link from 'next/link';
-import { AlertCircle, ArrowLeft, Home } from 'lucide-react';
+import { FileQuestion, ArrowLeft, Home, Search } from 'lucide-react';
 
 export default function NotFound() {
   return (
     <div className="min-h-[70vh] flex items-center justify-center p-4">
-      <div className="max-w-md w-full bg-white p-8 rounded-3xl border border-slate-200 shadow-xl text-center space-y-5">
-        <div className="w-14 h-14 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
-          <AlertCircle className="w-8 h-8" />
+      <div className="max-w-md w-full text-center space-y-6 bg-white border border-slate-200 rounded-3xl p-8 shadow-xs">
+        <div className="inline-flex p-4 bg-blue-50 text-blue-600 rounded-3xl">
+          <FileQuestion className="w-10 h-10" />
         </div>
-        <div>
-          <h1 className="text-2xl font-black text-slate-900">Page Not Found</h1>
-          <p className="text-xs text-slate-500 mt-1">
-            The requested service or application page does not exist or has been relocated.
+
+        <div className="space-y-2">
+          <span className="text-[11px] font-black tracking-wider text-blue-600 uppercase bg-blue-50 px-2.5 py-1 rounded-full">
+            404 Error
+          </span>
+          <h1 className="text-2xl font-black text-slate-900">Service Not Found</h1>
+          <p className="text-xs text-slate-500 leading-relaxed">
+            The service or page you are looking for might have expired, been deactivated, or moved to another URL.
           </p>
         </div>
-        <div className="pt-2 flex items-center justify-center gap-3">
+
+        <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
           <Link
             href="/services"
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition flex items-center gap-1.5"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
           >
-            <ArrowLeft className="w-4 h-4" /> All Services
+            <Search className="w-4 h-4" />
+            <span>Browse All Services</span>
           </Link>
           <Link
             href="/"
-            className="px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl transition flex items-center gap-1.5"
+            className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition"
           >
-            <Home className="w-4 h-4" /> Homepage
+            <Home className="w-4 h-4" />
+            <span>Back to Home</span>
           </Link>
         </div>
       </div>
