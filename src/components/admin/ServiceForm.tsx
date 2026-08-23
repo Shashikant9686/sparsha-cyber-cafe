@@ -152,12 +152,14 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         { image_url: publicUrlData.publicUrl, alt_text: name || 'Service poster' },
       ]);
     } catch (err: unknown) {
-      console.error('Image upload failed:', err);
-      let msg = 'Failed to upload image';
-      if (typeof err === 'object' && err !== null && 'message' in err) {
-        msg = String((err as { message: string }).message);
-      }
-      setErrorMessage(msg);
+      const errorObj = err as { message?: string; details?: string; hint?: string; code?: string };
+      console.error('Image upload failed:', {
+        message: err instanceof Error ? err.message : errorObj?.message || String(err),
+        details: errorObj?.details,
+        hint: errorObj?.hint,
+        code: errorObj?.code,
+      });
+      setErrorMessage(errorObj?.message || (err instanceof Error ? err.message : 'Failed to upload image'));
     } finally {
       setUploadingImage(false);
       e.target.value = '';
@@ -186,12 +188,16 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       router.push('/admin/services');
       router.refresh();
     } catch (err: unknown) {
-      console.error('Delete service error:', err);
-      let msg = 'Failed to delete service';
-      if (typeof err === 'object' && err !== null && 'message' in err) {
-        msg = String((err as { message: string }).message);
-      }
-      setErrorMessage(msg);
+      const errorObj = err as { message?: string; details?: string; hint?: string; code?: string };
+      console.error('Delete service error:', {
+        message: err instanceof Error ? err.message : errorObj?.message || String(err),
+        details: errorObj?.details,
+        hint: errorObj?.hint,
+        code: errorObj?.code,
+      });
+
+      const message = errorObj?.message || (err instanceof Error ? err.message : 'Failed to delete service');
+      setErrorMessage(message);
       setDeleting(false);
     }
   };
@@ -279,20 +285,16 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       router.push('/admin/services');
       router.refresh();
     } catch (err: unknown) {
-      console.error('Save service error details:', err);
-      let msg = 'Failed to save service';
-      if (typeof err === 'object' && err !== null) {
-        if ('message' in err && typeof (err as { message: string }).message === 'string') {
-          msg = (err as { message: string }).message;
-        } else if ('error_description' in err && typeof (err as { error_description: string }).error_description === 'string') {
-          msg = (err as { error_description: string }).error_description;
-        } else {
-          msg = JSON.stringify(err);
-        }
-      } else if (err instanceof Error) {
-        msg = err.message;
-      }
-      setErrorMessage(msg);
+      const errorObj = err as { message?: string; details?: string; hint?: string; code?: string };
+      console.error('Save service error:', {
+        message: err instanceof Error ? err.message : errorObj?.message || String(err),
+        details: errorObj?.details,
+        hint: errorObj?.hint,
+        code: errorObj?.code,
+      });
+
+      const message = errorObj?.message || (err instanceof Error ? err.message : 'Failed to save service');
+      setErrorMessage(message);
     } finally {
       setLoading(false);
     }
