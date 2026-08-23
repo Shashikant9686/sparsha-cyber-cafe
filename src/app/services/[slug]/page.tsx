@@ -3,6 +3,8 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import ServiceDetailClient from '@/components/services/ServiceDetailClient';
 
+export const dynamic = 'force-dynamic';
+
 const SITE_NAME = 'Sparsha Cyber Cafe & Online Seva Kendra';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://sparsha-cyber-cafe.vercel.app';
 const SHOP_PHONE = '+91 96861 68988';
@@ -13,7 +15,7 @@ interface PageProps {
 }
 
 /**
- * Pre-generate static route parameters for all active services
+ * Pre-generate static route parameters for SEO indexing
  */
 export async function generateStaticParams() {
   try {
@@ -31,23 +33,30 @@ export async function generateStaticParams() {
       slug: service.slug,
     }));
   } catch (err) {
-    console.error('Static params generation error:', err);
+    console.error('generateStaticParams execution failure:', err);
     return [];
   }
 }
 
 /**
- * Generate rich SEO & OpenGraph Social metadata
+ * Generate rich SEO & OpenGraph Social metadata for Google and WhatsApp sharing
  */
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
   try {
     const { slug } = await params;
-    const supabase = await createClient();
 
+    if (!slug) {
+      return {
+        title: 'Service Not Found | Sparsha Online Seva',
+        description: 'The requested government or online application service is not available.',
+      };
+    }
+
+    const supabase = await createClient();
     const { data: service } = await supabase
       .from('services')
       .select('name, fee, service_charge, estimated_days, prerequisites, steps, category_id')
-      .eq('slug', slug)
+      .ilike('slug', slug)
       .maybeSingle();
 
     if (!service) {
@@ -69,11 +78,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       }
     }
 
-    const title = `${service.name} Online Application & Document Checklist | Sparsha Cyber Cafe`;
+    const title = `${service.name} Application & Required Documents Checklist | Sparsha Cyber Cafe`;
     const description =
       service.prerequisites ||
       service.steps ||
-      `Apply for ${service.name} at Sparsha Cyber Cafe, Aland. Check required documents list, govt fees ₹${service.fee ?? 0}, service charges, and processing timeline.`;
+      `Apply for ${service.name} at Sparsha Cyber Cafe Aland. Check required documents checklist, govt official fees ₹${service.fee ?? 0}, service charges, and processing timeline.`;
 
     return {
       title,
@@ -84,9 +93,10 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
         'Sparsha Cyber Cafe Aland',
         'Online Seva Kendra Aland',
         'Karnataka Online Applications',
-        'Seva Sindhu Online Portal',
+        'Seva Sindhu Aland',
         'Required Documents Checklist',
-        'Kalaburagi Cyber Cafe'
+        'Kalaburagi Cyber Cafe',
+        'Online Form Submission Aland'
       ],
       alternates: {
         canonical: `${SITE_URL}/services/${slug}`,
@@ -126,16 +136,16 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       },
     };
   } catch (error) {
-    console.error('Metadata generation error:', error);
+    console.error('generateMetadata error:', error);
     return {
       title: 'Service Details | Sparsha Online Seva Aland',
-      description: 'Online services and application assistance at Sparsha Cyber Cafe Aland.',
+      description: 'Online citizen application services and documentation checklist at Sparsha Cyber Cafe Aland.',
     };
   }
 }
 
 /**
- * Service Detail Server Page Component
+ * Service Detail Main Server Component
  */
 export default async function ServiceDetailPage({ params }: PageProps) {
   const { slug } = await params;
@@ -146,24 +156,25 @@ export default async function ServiceDetailPage({ params }: PageProps) {
 
   const supabase = await createClient();
 
-  // 1. Fetch Primary Service Entry
+  // 1. Fetch main service row
   const { data: service, error: serviceError } = await supabase
     .from('services')
     .select('*')
-    .eq('slug', slug)
+    .ilike('slug', slug)
     .maybeSingle();
 
   if (serviceError || !service) {
+    console.error('Service lookup error:', slug, serviceError);
     notFound();
   }
 
-  // 2. Fetch Category Record
+  // 2. Fetch category record
   let categoryData = null;
   if (service.category_id) {
     try {
       const { data: cat } = await supabase
         .from('categories')
-        .select('*')
+        .select('id, name, slug')
         .eq('id', service.category_id)
         .maybeSingle();
       categoryData = cat;
@@ -172,33 +183,33 @@ export default async function ServiceDetailPage({ params }: PageProps) {
     }
   }
 
-  // 3. Fetch Required Documents List
+  // 3. Fetch required documents
   let requiredDocuments: any[] = [];
   try {
     const { data: docs } = await supabase
       .from('required_documents')
-      .select('*')
+      .select('id, service_id, document_name, is_mandatory, notes, display_order')
       .eq('service_id', service.id)
       .order('display_order', { ascending: true });
     requiredDocuments = docs || [];
   } catch (docErr) {
-    console.error('Failed to load documents:', docErr);
+    console.error('Failed to load required documents:', docErr);
   }
 
-  // 4. Fetch Associated Service Sample Images
+  // 4. Fetch service sample images
   let serviceImages: any[] = [];
   try {
     const { data: imgs } = await supabase
       .from('service_images')
-      .select('*')
+      .select('id, service_id, image_url, caption, display_order')
       .eq('service_id', service.id)
       .order('display_order', { ascending: true });
     serviceImages = imgs || [];
   } catch (imgErr) {
-    console.error('Failed to load images:', imgErr);
+    console.error('Failed to load service images:', imgErr);
   }
 
-  // 5. Fetch Related Services in same category for suggestion section
+  // 5. Fetch related services from the same category
   let relatedServices: Array<{ id: string; name: string; slug: string; fee: number | null }> = [];
   if (service.category_id) {
     try {
@@ -214,7 +225,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
     }
   }
 
-  // 6. Build Rich Schema.org JSON-LD Structured Data
+  // 6. Build Google Schema.org JSON-LD Structured Data
   const structuredData = {
     '@context': 'https://schema.org',
     '@graph': [

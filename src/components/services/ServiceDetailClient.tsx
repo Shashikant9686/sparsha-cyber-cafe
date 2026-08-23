@@ -40,10 +40,8 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
   }
 
   const docs = Array.isArray(service.required_documents) ? service.required_documents : [];
-  const images = Array.isArray(service.service_images) ? service.service_images : [];
   const related = Array.isArray(service.relatedServices) ? service.relatedServices : [];
 
-  // Parse FAQs safely (can be JSON array, string, or object)
   let faqs: Array<{ question: string; answer: string }> = [];
   if (Array.isArray(service.faq)) {
     faqs = service.faq;
@@ -55,7 +53,6 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
     }
   }
 
-  // Parse steps (can be newline delimited or numbered text)
   const stepsList = typeof service.steps === 'string'
     ? service.steps.split('\n').filter((s: string) => s.trim().length > 0)
     : [];
@@ -66,7 +63,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
     <div className="min-h-screen bg-slate-50 py-10 px-4 sm:px-6 lg:px-8">
       <div className="max-w-4xl mx-auto space-y-8">
         
-        {/* Breadcrumb & Navigation */}
+        {/* Navigation */}
         <div className="flex items-center justify-between">
           <Link
             href="/services"
@@ -83,7 +80,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
           )}
         </div>
 
-        {/* Hero Card */}
+        {/* Header Hero */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
           <div className="space-y-2">
             <h1 className="text-2xl sm:text-3xl font-extrabold text-slate-900 tracking-tight">
@@ -96,7 +93,6 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
             )}
           </div>
 
-          {/* Key Metrics Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 pt-2">
             <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl flex items-center gap-3.5">
               <div className="p-2.5 bg-blue-100 text-blue-700 rounded-xl">
@@ -105,7 +101,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
               <div>
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Processing Time</p>
                 <p className="text-sm font-extrabold text-slate-800">
-                  {service.estimated_days || service.processing_time || '7 - 15 Days'}
+                  {service.estimated_days || '7 - 15 Days'}
                 </p>
               </div>
             </div>
@@ -117,7 +113,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
               <div>
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Total Charges</p>
                 <p className="text-sm font-extrabold text-slate-800">
-                  {totalFee > 0 ? `₹${totalFee}` : 'Free / Minimal Govt Fee'}
+                  {totalFee > 0 ? `₹${totalFee}` : 'Free / Direct Govt Fee'}
                 </p>
               </div>
             </div>
@@ -135,7 +131,6 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
             </div>
           </div>
 
-          {/* Pricing Details Breakdown */}
           {(service.fee != null || service.service_charge != null) && (
             <div className="p-4 bg-blue-50/60 border border-blue-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-4 text-slate-700 font-medium">
@@ -143,13 +138,9 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
                 <span>•</span>
                 <span>Cafe Service Charge: <strong className="text-slate-900">₹{service.service_charge ?? 0}</strong></span>
               </div>
-              <span className="text-[11px] text-blue-700 font-bold bg-blue-100/70 px-2.5 py-1 rounded-lg self-start sm:self-auto">
-                Direct Counter Billing
-              </span>
             </div>
           )}
 
-          {/* Action CTA */}
           <div className="pt-2">
             <button
               type="button"
@@ -176,11 +167,11 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
                   <div>
                     <p className="text-xs font-bold text-slate-800">
-                      {doc.document_name || doc.name || 'Document'}
+                      {doc.document_name || 'Document'}
                     </p>
-                    {(doc.notes || doc.description) && (
+                    {doc.notes && (
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        {doc.notes || doc.description}
+                        {doc.notes}
                       </p>
                     )}
                   </div>
@@ -202,7 +193,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
           </div>
         </div>
 
-        {/* Eligibility & Prerequisites */}
+        {/* Prerequisites */}
         {service.prerequisites && (
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-3">
             <div className="flex items-center gap-2.5 text-slate-900 font-bold">
@@ -215,7 +206,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
           </div>
         )}
 
-        {/* Step-by-Step Procedure */}
+        {/* Procedure Steps */}
         {stepsList.length > 0 && (
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
             <h2 className="text-lg font-bold text-slate-900">Application Procedure</h2>
@@ -250,7 +241,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
           </div>
         )}
 
-        {/* Related Services Suggestions */}
+        {/* Related Services */}
         {related.length > 0 && (
           <div className="space-y-3 pt-4">
             <h3 className="text-sm font-bold text-slate-800">Related Services</h3>
@@ -275,7 +266,6 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
 
       </div>
 
-      {/* WhatsApp Checklist Modal */}
       {isModalOpen && (
         <WhatsAppChecklistModal
           isOpen={isModalOpen}
