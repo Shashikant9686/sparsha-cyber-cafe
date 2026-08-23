@@ -3,7 +3,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Edit2, Trash2, Search, ExternalLink, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, Search, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 
 interface CounsellingEventRow {
   id: string;
@@ -22,22 +22,23 @@ export default function AdminCounsellingPage() {
   const supabase = createClient();
   const [events, setEvents] = useState<CounsellingEventRow[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
-  const [error, setError] = useState<string | null>(null);
 
   const fetchEvents = useCallback(async () => {
     try {
       setLoading(true);
-      setError(null);
-      const { data, error: fetchError } = await supabase
+      setFetchError(null);
+      const { data, error: err } = await supabase
         .from('counselling_events')
         .select('*')
         .order('created_at', { ascending: false });
 
-      if (fetchError) throw fetchError;
+      if (err) throw err;
       setEvents((data as CounsellingEventRow[]) || []);
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to load counselling events');
+      console.error('Error fetching counselling events:', err);
+      setFetchError(err instanceof Error ? err.message : 'Failed to load counselling events');
     } finally {
       setLoading(false);
     }
@@ -59,6 +60,7 @@ export default function AdminCounsellingPage() {
       if (delError) throw delError;
       setEvents((prev) => prev.filter((e) => e.id !== id));
     } catch (err: unknown) {
+      console.error('Error deleting event:', err);
       alert(err instanceof Error ? err.message : 'Failed to delete event');
     }
   };
@@ -73,7 +75,7 @@ export default function AdminCounsellingPage() {
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
         <div>
           <h1 className="text-xl font-black text-slate-900">Counselling & Option Entry</h1>
-          <p className="text-xs text-slate-500">Manage KEA, KCET, NEET, and diploma admission schedules.</p>
+          <p className="text-xs text-slate-500">Manage KEA, KCET, NEET, and admission schedules.</p>
         </div>
         <Link
           href="/admin/counselling/new"
@@ -84,9 +86,13 @@ export default function AdminCounsellingPage() {
         </Link>
       </div>
 
-      {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700">
-          {error}
+      {fetchError && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-start gap-2.5">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold">Failed to load counselling events: </span>
+            {fetchError}
+          </div>
         </div>
       )}
 
@@ -107,9 +113,13 @@ export default function AdminCounsellingPage() {
             <Loader2 className="w-6 h-6 animate-spin mb-2" />
             <span className="text-xs">Loading counselling events...</span>
           </div>
+        ) : fetchError ? (
+          <div className="p-12 text-center text-rose-600 text-xs">
+            An error occurred while loading events.
+          </div>
         ) : filteredEvents.length === 0 ? (
           <div className="p-12 text-center text-slate-400 text-xs">
-            No counselling events found.
+            {searchQuery ? 'No counselling events match your search.' : 'No counselling events found.'}
           </div>
         ) : (
           <div className="overflow-x-auto">
