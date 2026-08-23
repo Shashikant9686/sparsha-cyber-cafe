@@ -45,12 +45,32 @@ interface ServiceFormProps {
   initialData?: ExtendedServiceData;
 }
 
+function extractErrorMessage(err: unknown): string {
+  if (!err) return 'Unknown error occurred';
+  if (typeof err === 'string') return err;
+  if (err instanceof Error) return err.message;
+  
+  if (typeof err === 'object') {
+    const record = err as Record<string, unknown>;
+    if (typeof record.message === 'string') return record.message;
+    if (typeof record.error_description === 'string') return record.error_description;
+    if (typeof record.details === 'string') return record.details;
+    if (typeof record.hint === 'string') return record.hint;
+    try {
+      return JSON.stringify(err);
+    } catch {
+      return 'Failed with database error object';
+    }
+  }
+  return String(err);
+}
+
 export default function ServiceForm({ initialData }: ServiceFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const isEditing = Boolean(initialData?.id);
 
-  // Form Fields mapped to database columns
+  // Form fields
   const [name, setName] = useState(initialData?.name || initialData?.title || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
@@ -88,7 +108,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
     initialData?.last_date ? initialData.last_date.split('T')[0] : ''
   );
 
-  // Documents & Images Sub-items
+  // Documents & Images
   const [documents, setDocuments] = useState<Array<{ id?: string; document_name: string; is_mandatory: boolean; description?: string }>>(
     initialData?.required_documents || []
   );
@@ -96,7 +116,6 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
     initialData?.service_images || []
   );
 
-  // Status & Categories
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -167,14 +186,9 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         { image_url: publicUrlData.publicUrl, alt_text: name || 'Service poster' },
       ]);
     } catch (err: unknown) {
-      const errorObj = err as { message?: string; details?: string; hint?: string; code?: string };
-      console.error('Image upload failed:', {
-        message: err instanceof Error ? err.message : errorObj?.message || String(err),
-        details: errorObj?.details,
-        hint: errorObj?.hint,
-        code: errorObj?.code,
-      });
-      setErrorMessage(errorObj?.message || (err instanceof Error ? err.message : 'Failed to upload image'));
+      const msg = extractErrorMessage(err);
+      console.error('Image upload failed:', msg);
+      setErrorMessage(msg);
     } finally {
       setUploadingImage(false);
       e.target.value = '';
@@ -196,8 +210,8 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       try {
         await supabase.from('required_documents').delete().eq('service_id', initialData.id);
         await supabase.from('service_images').delete().eq('service_id', initialData.id);
-      } catch (subErr) {
-        console.warn('Subtable cleanup warning during delete:', subErr);
+      } catch (cleanupErr) {
+        console.warn('Subtable cleanup warning:', cleanupErr);
       }
 
       const { error: delError } = await supabase
@@ -210,16 +224,9 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       router.push('/admin/services');
       router.refresh();
     } catch (err: unknown) {
-      const errorObj = err as { message?: string; details?: string; hint?: string; code?: string };
-      console.error('Delete service error:', {
-        message: err instanceof Error ? err.message : errorObj?.message || String(err),
-        details: errorObj?.details,
-        hint: errorObj?.hint,
-        code: errorObj?.code,
-      });
-
-      const message = errorObj?.message || (err instanceof Error ? err.message : 'Failed to delete service');
-      setErrorMessage(message);
+      const msg = extractErrorMessage(err);
+      console.error('Delete service error:', msg);
+      setErrorMessage(msg);
       setDeleting(false);
     }
   };
@@ -234,6 +241,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       const parsedFee = fee === '' ? null : parseFloat(fee);
       const parsedServiceCharge = serviceCharge === '' ? null : parseFloat(serviceCharge);
 
+      // Clean payload with proper null handling
       const servicePayload = {
         name: name.trim(),
         title: name.trim(),
@@ -252,8 +260,9 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         submission_method: submissionMethod,
         official_link: officialLink.trim() || null,
         custom_disclaimer: customDisclaimer.trim() || null,
-        start_date: startDate || null,
-        last_date: lastDate || null,
+        start_date: startDate ? new Date(startDate).toISOString() : null,
+        last_date: lastDate ? new Date(lastDate).toISOString() : null,
+        updated_at: new Date().toISOString(),
       };
 
       let serviceId = initialData?.id;
@@ -276,7 +285,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         serviceId = newService.id;
       }
 
-      // Safe sync documents without crashing the edit save
+      // Sync Documents safely
       try {
         await supabase.from('required_documents').delete().eq('service_id', serviceId);
         if (documents.length > 0) {
@@ -298,7 +307,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         console.warn('Non-fatal required_documents sync notice:', docErr);
       }
 
-      // Safe sync images without crashing the edit save
+      // Sync Images safely
       try {
         await supabase.from('service_images').delete().eq('service_id', serviceId);
         if (images.length > 0) {
@@ -318,16 +327,9 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       router.push('/admin/services');
       router.refresh();
     } catch (err: unknown) {
-      const errorObj = err as { message?: string; details?: string; hint?: string; code?: string };
-      console.error('Save service error:', {
-        message: err instanceof Error ? err.message : errorObj?.message || String(err),
-        details: errorObj?.details,
-        hint: errorObj?.hint,
-        code: errorObj?.code,
-      });
-
-      const message = errorObj?.message || (err instanceof Error ? err.message : 'Failed to save service');
-      setErrorMessage(message);
+      const msg = extractErrorMessage(err);
+      console.error('Save service detailed error:', msg);
+      setErrorMessage(msg);
     } finally {
       setLoading(false);
     }
@@ -696,7 +698,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       </div>
 
-      {/* Bottom Save & Delete Actions */}
+      {/* Actions Bottom */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-200">
         {isEditing ? (
           <button
