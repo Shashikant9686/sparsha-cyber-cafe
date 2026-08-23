@@ -1,35 +1,48 @@
-import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import type { User } from '@supabase/supabase-js';
 
-export async function requireAdminSession() {
+export type AdminRole = 'superadmin' | 'admin' | 'operator';
+
+export interface AdminSession {
+  user: User;
+  role: AdminRole;
+}
+
+/**
+ * Validates whether the current request is backed by an authenticated Supabase user
+ * who exists in the `admin_users` table by matching on `user_id`.
+ * 
+ * - Unauthenticated users are redirected to /login.
+ * - Authenticated users NOT found in `admin_users` are denied access and redirected to /login?error=unauthorized.
+ * - No automatic row creation or privilege promotion is performed.
+ */
+export async function requireAdminSession(): Promise<AdminSession> {
   const supabase = await createClient();
+
   const {
     data: { user },
     error: authError,
   } = await supabase.auth.getUser();
 
   if (authError || !user) {
-    redirect('/login?redirect=/admin');
+    redirect('/login');
   }
 
-  // Check admin record by user_id OR user email
-  const { data: adminRecord } = await supabase
+  // Look up admin privilege exclusively by user_id to prevent email-spoofing escalation
+  const { data: adminRecord, error: dbError } = await supabase
     .from('admin_users')
-    .select('role, email')
-    .or(`user_id.eq.${user.id},email.eq.${user.email}`)
+    .select('role')
+    .eq('user_id', user.id)
     .maybeSingle();
 
-  // If user is authenticated in Supabase auth, allow access and sync role
-  if (!adminRecord) {
-    // If not in table, insert automatically for the authenticated user
-    if (user.email) {
-      await supabase.from('admin_users').upsert({
-        user_id: user.id,
-        email: user.email,
-        role: 'superadmin',
-      });
-    }
+  if (dbError || !adminRecord) {
+    // Access denied: Authenticated user lacks explicit administrative privileges
+    redirect('/login?error=unauthorized');
   }
 
-  return { user, role: adminRecord?.role || 'superadmin' };
+  return {
+    user,
+    role: adminRecord.role as AdminRole,
+  };
 }
