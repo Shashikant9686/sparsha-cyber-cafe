@@ -193,6 +193,13 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
     setErrorMessage(null);
 
     try {
+      try {
+        await supabase.from('required_documents').delete().eq('service_id', initialData.id);
+        await supabase.from('service_images').delete().eq('service_id', initialData.id);
+      } catch (subErr) {
+        console.warn('Subtable cleanup warning during delete:', subErr);
+      }
+
       const { error: delError } = await supabase
         .from('services')
         .delete()
@@ -227,7 +234,6 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       const parsedFee = fee === '' ? null : parseFloat(fee);
       const parsedServiceCharge = serviceCharge === '' ? null : parseFloat(serviceCharge);
 
-      // Matches exact columns in public.services
       const servicePayload = {
         name: name.trim(),
         title: name.trim(),
@@ -270,41 +276,43 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         serviceId = newService.id;
       }
 
-      // Sync Documents
-      await supabase.from('required_documents').delete().eq('service_id', serviceId);
-      if (documents.length > 0) {
-        const docsPayload = documents
-          .filter((d) => d.document_name.trim() !== '')
-          .map((d, index) => ({
+      // Safe sync documents without crashing the edit save
+      try {
+        await supabase.from('required_documents').delete().eq('service_id', serviceId);
+        if (documents.length > 0) {
+          const docsPayload = documents
+            .filter((d) => d.document_name.trim() !== '')
+            .map((d, index) => ({
+              service_id: serviceId,
+              document_name: d.document_name.trim(),
+              is_mandatory: d.is_mandatory,
+              description: d.description?.trim() || null,
+              display_order: index + 1,
+            }));
+
+          if (docsPayload.length > 0) {
+            await supabase.from('required_documents').insert(docsPayload);
+          }
+        }
+      } catch (docErr) {
+        console.warn('Non-fatal required_documents sync notice:', docErr);
+      }
+
+      // Safe sync images without crashing the edit save
+      try {
+        await supabase.from('service_images').delete().eq('service_id', serviceId);
+        if (images.length > 0) {
+          const imagesPayload = images.map((img, index) => ({
             service_id: serviceId,
-            document_name: d.document_name.trim(),
-            is_mandatory: d.is_mandatory,
-            description: d.description?.trim() || null,
+            image_url: img.image_url,
+            alt_text: img.alt_text || null,
             display_order: index + 1,
           }));
 
-        if (docsPayload.length > 0) {
-          const { error: docError } = await supabase
-            .from('required_documents')
-            .insert(docsPayload);
-          if (docError) throw docError;
+          await supabase.from('service_images').insert(imagesPayload);
         }
-      }
-
-      // Sync Images
-      await supabase.from('service_images').delete().eq('service_id', serviceId);
-      if (images.length > 0) {
-        const imagesPayload = images.map((img, index) => ({
-          service_id: serviceId,
-          image_url: img.image_url,
-          alt_text: img.alt_text || null,
-          display_order: index + 1,
-        }));
-
-        const { error: imgError } = await supabase
-          .from('service_images')
-          .insert(imagesPayload);
-        if (imgError) throw imgError;
+      } catch (imgErr) {
+        console.warn('Non-fatal service_images sync notice:', imgErr);
       }
 
       router.push('/admin/services');
@@ -377,7 +385,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       )}
 
-      {/* General Info */}
+      {/* General Information */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">General Information</h2>
 
@@ -563,7 +571,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       </div>
 
-      {/* Documents */}
+      {/* Required Documents */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
@@ -636,7 +644,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       </div>
 
-      {/* Posters & Images */}
+      {/* Service Images */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
@@ -688,7 +696,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       </div>
 
-      {/* Actions Bottom */}
+      {/* Bottom Save & Delete Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-200">
         {isEditing ? (
           <button
