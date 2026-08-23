@@ -3,333 +3,375 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import ImageUploader, { UploadedImage } from '@/components/admin/ImageUploader';
-import { Loader2, Plus, Trash2, ArrowLeft } from 'lucide-react';
+import { 
+  Save, 
+  Loader2, 
+  Trash2, 
+  Plus, 
+  Upload, 
+  AlertCircle, 
+  ArrowLeft 
+} from 'lucide-react';
 import Link from 'next/link';
+import type { Category, RequiredDocument, ServiceImage } from '@/lib/types';
 
-interface CategoryOption {
-  id: string;
-  name: string;
-}
-
-interface RequiredDocItem {
+interface ExtendedServiceData {
   id?: string;
-  document_name: string;
-  description?: string;
-  is_mandatory?: boolean;
-  display_order: number;
+  name?: string;
+  slug?: string;
+  category_id?: string | null;
+  short_description?: string | null;
+  full_description?: string | null;
+  fee?: number | string | null;
+  service_charge?: number | string | null;
+  status?: string;
+  featured?: boolean;
+  submission_method?: string;
+  official_link?: string | null;
+  official_portal_url?: string | null;
+  disclaimer?: string | null;
+  start_date?: string | null;
+  last_date?: string | null;
+  application_deadline?: string | null;
+  required_documents?: RequiredDocument[];
+  service_images?: ServiceImage[];
 }
 
 interface ServiceFormProps {
-  initialData?: {
-    id?: string;
-    category_id: string | null;
-    name: string;
-    slug: string;
-    short_description: string | null;
-    full_description: string | null;
-    fee: number | null;
-    service_charge: number | null;
-    submission_method: string;
-    start_date: string | null;
-    last_date: string | null;
-    official_link: string | null;
-    status: string;
-    featured: boolean;
-    display_order: number;
-    disclaimer: string | null;
-  };
-  initialDocs?: RequiredDocItem[];
-  initialImages?: UploadedImage[];
-  isEditing?: boolean;
+  initialData?: ExtendedServiceData;
 }
 
-export default function ServiceForm({
-  initialData,
-  initialDocs = [],
-  initialImages = [],
-  isEditing = false,
-}: ServiceFormProps) {
+export default function ServiceForm({ initialData }: ServiceFormProps) {
   const router = useRouter();
   const supabase = createClient();
+  const isEditing = Boolean(initialData?.id);
 
-  const [categories, setCategories] = useState<CategoryOption[]>([]);
-  const [loadingCategories, setLoadingCategories] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const initialOfficialLink = initialData?.official_link || initialData?.official_portal_url || '';
+  const initialLastDate = initialData?.last_date || initialData?.application_deadline || '';
 
-  // Form State
-  const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
+  // Form Fields
   const [name, setName] = useState(initialData?.name || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
+  const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
   const [shortDescription, setShortDescription] = useState(initialData?.short_description || '');
   const [fullDescription, setFullDescription] = useState(initialData?.full_description || '');
-  const [fee, setFee] = useState<number | ''>(initialData?.fee ?? '');
-  const [serviceCharge, setServiceCharge] = useState<number | ''>(initialData?.service_charge ?? '');
-  const [submissionMethod, setSubmissionMethod] = useState(initialData?.submission_method || 'Online');
-  const [startDate, setStartDate] = useState(initialData?.start_date || '');
-  const [lastDate, setLastDate] = useState(initialData?.last_date || '');
-  const [officialLink, setOfficialLink] = useState(initialData?.official_link || '');
-  const [status, setStatus] = useState(initialData?.status || 'Active');
-  const [featured, setFeatured] = useState(initialData?.featured ?? false);
-  const [displayOrder, setDisplayOrder] = useState<number>(initialData?.display_order ?? 0);
+  const [fee, setFee] = useState<string>(initialData?.fee != null ? String(initialData.fee) : '');
+  const [serviceCharge, setServiceCharge] = useState<string>(
+    initialData?.service_charge != null ? String(initialData.service_charge) : ''
+  );
+  const [status, setStatus] = useState<string>(initialData?.status || 'Active');
+  const [featured, setFeatured] = useState<boolean>(initialData?.featured || false);
+  const [submissionMethod, setSubmissionMethod] = useState<string>(
+    initialData?.submission_method || 'Online'
+  );
+  const [officialLink, setOfficialLink] = useState(initialOfficialLink);
   const [disclaimer, setDisclaimer] = useState(initialData?.disclaimer || '');
-
-  // Documents state
-  const [documents, setDocuments] = useState<RequiredDocItem[]>(
-    initialDocs.length > 0
-      ? initialDocs
-      : [{ document_name: '', description: '', is_mandatory: true, display_order: 1 }]
+  const [startDate, setStartDate] = useState(
+    initialData?.start_date ? initialData.start_date.split('T')[0] : ''
+  );
+  const [lastDate, setLastDate] = useState(
+    initialLastDate ? initialLastDate.split('T')[0] : ''
   );
 
-  // Images state
-  const [images, setImages] = useState<UploadedImage[]>(initialImages);
+  // Documents & Images Sub-items
+  const [documents, setDocuments] = useState<Array<{ id?: string; document_name: string; is_mandatory: boolean; description?: string }>>(
+    initialData?.required_documents || []
+  );
+  const [images, setImages] = useState<Array<{ id?: string; image_url: string; alt_text?: string }>>(
+    initialData?.service_images || []
+  );
 
-  // Fetch categories
+  // Status & Categories
+  const [categories, setCategories] = useState<Category[]>([]);
+  const [loading, setLoading] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+
   useEffect(() => {
     async function loadCategories() {
-      try {
-        const { data, error: catError } = await supabase
-          .from('categories')
-          .select('id, name')
-          .order('display_order', { ascending: true });
-
-        if (catError) throw catError;
-        setCategories(data || []);
-        if (!categoryId && data && data.length > 0) {
-          setCategoryId(data[0].id);
-        }
-      } catch (err: any) {
-        console.error('Error fetching categories:', err.message);
-      } finally {
-        setLoadingCategories(false);
-      }
+      const { data } = await supabase.from('categories').select('*').order('name');
+      if (data) setCategories(data);
     }
     loadCategories();
   }, [supabase]);
 
-  const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const val = e.target.value;
+  const handleNameChange = (val: string) => {
     setName(val);
     if (!isEditing) {
       setSlug(
         val
           .toLowerCase()
-          .replace(/[^\w\s-]/g, '')
-          .replace(/\s+/g, '-')
-          .replace(/--+/g, '-')
-          .trim()
+          .replace(/[^a-z0-9]+/g, '-')
+          .replace(/(^-|-$)/g, '')
       );
     }
   };
 
-  const addDocField = () => {
+  const handleAddDocument = () => {
     setDocuments((prev) => [
       ...prev,
-      { document_name: '', description: '', is_mandatory: true, display_order: prev.length + 1 },
+      { document_name: '', is_mandatory: true, description: '' },
     ]);
   };
 
-  const updateDocField = (index: number, field: keyof RequiredDocItem, value: any) => {
-    setDocuments((prev) => {
-      const updated = [...prev];
-      updated[index] = { ...updated[index], [field]: value };
-      return updated;
-    });
+  const handleRemoveDocument = (idx: number) => {
+    setDocuments((prev) => prev.filter((_, i) => i !== idx));
   };
 
-  const removeDocField = (index: number) => {
-    setDocuments((prev) => prev.filter((_, i) => i !== index));
+  const handleDocumentChange = (idx: number, field: string, value: unknown) => {
+    setDocuments((prev) =>
+      prev.map((doc, i) => (i === idx ? { ...doc, [field]: value } : doc))
+    );
+  };
+
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setUploadingImage(true);
+    setErrorMessage(null);
+
+    try {
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2)}.${fileExt}`;
+      const filePath = `services/${fileName}`;
+
+      const { error: uploadError } = await supabase.storage
+        .from('service-images')
+        .upload(filePath, file);
+
+      if (uploadError) throw uploadError;
+
+      const { data: publicUrlData } = supabase.storage
+        .from('service-images')
+        .getPublicUrl(filePath);
+
+      setImages((prev) => [
+        ...prev,
+        { image_url: publicUrlData.publicUrl, alt_text: name || 'Service poster' },
+      ]);
+    } catch (err: unknown) {
+      console.error('Image upload failed:', err);
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to upload image');
+    } finally {
+      setUploadingImage(false);
+      e.target.value = '';
+    }
+  };
+
+  const handleRemoveImage = (idx: number) => {
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const handleDeleteService = async () => {
+    if (!initialData?.id) return;
+    if (!confirm(`Are you sure you want to delete "${initialData.name}"?`)) return;
+
+    setDeleting(true);
+    setErrorMessage(null);
+
+    try {
+      const { error: delError } = await supabase
+        .from('services')
+        .delete()
+        .eq('id', initialData.id);
+
+      if (delError) throw delError;
+
+      router.push('/admin/services');
+      router.refresh();
+    } catch (err: unknown) {
+      console.error('Delete service error:', err);
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to delete service');
+      setDeleting(false);
+    }
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    setSaving(true);
-    setError(null);
+    setLoading(true);
+    setErrorMessage(null);
 
-    if (!name.trim() || !slug.trim()) {
-      setError('Service name and slug are mandatory.');
-      setSaving(false);
-      return;
-    }
-
-    let targetServiceId = initialData?.id;
-
-    // 1. Save or update parent service record
     try {
       const servicePayload = {
-        category_id: categoryId || null,
         name: name.trim(),
         slug: slug.trim(),
+        category_id: categoryId || null,
         short_description: shortDescription.trim() || null,
         full_description: fullDescription.trim() || null,
-        fee: fee === '' ? null : Number(fee),
-        service_charge: serviceCharge === '' ? null : Number(serviceCharge),
-        submission_method: submissionMethod,
-        start_date: startDate ? new Date(startDate).toISOString() : null,
-        last_date: lastDate ? new Date(lastDate).toISOString() : null,
-        official_link: officialLink.trim() || null,
+        fee: fee === '' ? null : parseFloat(fee),
+        service_charge: serviceCharge === '' ? null : parseFloat(serviceCharge),
         status,
         featured,
-        display_order: Number(displayOrder) || 0,
+        submission_method: submissionMethod,
+        official_link: officialLink.trim() || null,
         disclaimer: disclaimer.trim() || null,
+        start_date: startDate || null,
+        last_date: lastDate || null,
       };
 
-      if (isEditing && targetServiceId) {
+      let serviceId = initialData?.id;
+
+      if (isEditing && serviceId) {
         const { error: updateError } = await supabase
           .from('services')
           .update(servicePayload)
-          .eq('id', targetServiceId);
+          .eq('id', serviceId);
 
         if (updateError) throw updateError;
       } else {
-        const { data: inserted, error: insertError } = await supabase
+        const { data: newService, error: insertError } = await supabase
           .from('services')
-          .insert([servicePayload])
+          .insert(servicePayload)
           .select('id')
           .single();
 
         if (insertError) throw insertError;
-        targetServiceId = inserted.id;
+        serviceId = newService.id;
       }
-    } catch (err: any) {
-      setError(err.message || 'Failed to save core service details.');
-      setSaving(false);
-      return;
-    }
 
-    // 2. Synchronize required documents
-    try {
-      if (targetServiceId) {
-        await supabase.from('required_documents').delete().eq('service_id', targetServiceId);
-
-        const validDocs = documents
-          .filter((d) => d.document_name.trim().length > 0)
+      // Sync Documents
+      await supabase.from('required_documents').delete().eq('service_id', serviceId);
+      if (documents.length > 0) {
+        const docsPayload = documents
+          .filter((d) => d.document_name.trim() !== '')
           .map((d, index) => ({
-            service_id: targetServiceId,
+            service_id: serviceId,
             document_name: d.document_name.trim(),
+            is_mandatory: d.is_mandatory,
             description: d.description?.trim() || null,
-            is_mandatory: d.is_mandatory ?? true,
             display_order: index + 1,
           }));
 
-        if (validDocs.length > 0) {
+        if (docsPayload.length > 0) {
           const { error: docError } = await supabase
             .from('required_documents')
-            .insert(validDocs);
-
+            .insert(docsPayload);
           if (docError) throw docError;
         }
       }
-    } catch (err: any) {
-      setError(`Service saved, but failed to update documents: ${err.message}`);
-      setSaving(false);
-      return;
-    }
 
-    // 3. Synchronize service images
-    try {
-      if (targetServiceId) {
-        await supabase.from('service_images').delete().eq('service_id', targetServiceId);
+      // Sync Images
+      await supabase.from('service_images').delete().eq('service_id', serviceId);
+      if (images.length > 0) {
+        const imagesPayload = images.map((img, index) => ({
+          service_id: serviceId,
+          image_url: img.image_url,
+          alt_text: img.alt_text || null,
+          display_order: index + 1,
+        }));
 
-        const validImages = (images || [])
-          .filter((img) => (img.image_url || '').trim().length > 0)
-          .map((img, index) => ({
-            service_id: targetServiceId,
-            image_url: img.image_url,
-            caption: img.caption?.trim() || name.trim(),
-            display_order: index + 1,
-          }));
-
-        if (validImages.length > 0) {
-          const { error: imgError } = await supabase
-            .from('service_images')
-            .insert(validImages);
-
-          if (imgError) throw imgError;
-        }
+        const { error: imgError } = await supabase
+          .from('service_images')
+          .insert(imagesPayload);
+        if (imgError) throw imgError;
       }
-    } catch (err: any) {
-      setError(`Service saved, but failed to update images: ${err.message}`);
-      setSaving(false);
-      return;
-    }
 
-    router.push('/admin/services');
-    router.refresh();
+      router.push('/admin/services');
+      router.refresh();
+    } catch (err: unknown) {
+      console.error('Save service error:', err);
+      setErrorMessage(err instanceof Error ? err.message : 'Failed to save service');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl pb-16">
-      <div className="flex items-center justify-between">
+      {/* Top Header & Navigation */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
             href="/admin/services"
-            className="p-2 bg-white border border-slate-200 rounded-xl hover:bg-slate-50 transition"
+            className="p-2 text-slate-500 hover:text-slate-800 bg-white border border-slate-200 rounded-xl transition shadow-xs"
           >
-            <ArrowLeft className="w-4 h-4 text-slate-600" />
+            <ArrowLeft className="w-4 h-4" />
           </Link>
           <div>
             <h1 className="text-xl font-black text-slate-900">
-              {isEditing ? 'Edit Service' : 'Add New Service'}
+              {isEditing ? `Edit: ${initialData?.name}` : 'Create New Service'}
             </h1>
-            <p className="text-xs text-slate-500">Configure catalog information, charges, and required papers.</p>
+            <p className="text-xs text-slate-500">Configure catalog details, pricing, documents, and banners.</p>
           </div>
         </div>
 
-        <button
-          type="submit"
-          disabled={saving}
-          className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-sm"
-        >
-          {saving && <Loader2 className="w-4 h-4 animate-spin" />}
-          <span>{saving ? 'Saving...' : isEditing ? 'Save Changes' : 'Create Service'}</span>
-        </button>
+        {/* Action Buttons Top */}
+        <div className="flex items-center gap-3">
+          {isEditing && (
+            <button
+              type="button"
+              disabled={deleting || loading}
+              onClick={handleDeleteService}
+              className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+            >
+              {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+              <span>Delete Service</span>
+            </button>
+          )}
+
+          <button
+            type="submit"
+            disabled={loading || deleting}
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+          >
+            {loading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Save className="w-3.5 h-3.5" />}
+            <span>{isEditing ? 'Save Changes' : 'Create Service'}</span>
+          </button>
+        </div>
       </div>
 
-      {error && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700">
-          {error}
+      {/* Error Banner */}
+      {errorMessage && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-start gap-2.5 shadow-xs">
+          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
+          <div>
+            <span className="font-bold">Error: </span>
+            {errorMessage}
+          </div>
         </div>
       )}
 
-      {/* General Information */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">General Information</h2>
+      {/* Basic Information */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+        <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">General Information</h2>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="space-y-2">
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700">Service Name *</label>
             <input
               type="text"
               required
               value={name}
-              onChange={handleNameChange}
-              placeholder="e.g. 371(J) Eligibility Certificate"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+              onChange={(e) => handleNameChange(e.target.value)}
+              placeholder="e.g. Caste & Income Certificate"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             />
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700">URL Slug *</label>
             <input
               type="text"
               required
               value={slug}
               onChange={(e) => setSlug(e.target.value)}
-              placeholder="371j-eligibility-certificate"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+              placeholder="caste-income-certificate"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             />
           </div>
+        </div>
 
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700">Category *</label>
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700">Category</label>
             <select
               value={categoryId}
               onChange={(e) => setCategoryId(e.target.value)}
-              disabled={loadingCategories}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             >
+              <option value="">Select Category</option>
               {categories.map((c) => (
                 <option key={c.id} value={c.id}>
                   {c.name}
@@ -338,216 +380,292 @@ export default function ServiceForm({
             </select>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-1.5">
             <label className="text-xs font-bold text-slate-700">Status</label>
             <select
               value={status}
               onChange={(e) => setStatus(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             >
               <option value="Active">Active</option>
               <option value="Hidden">Hidden</option>
-              <option value="Archived">Archived</option>
             </select>
           </div>
-        </div>
 
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700">Short Summary</label>
-          <input
-            type="text"
-            value={shortDescription}
-            onChange={(e) => setShortDescription(e.target.value)}
-            placeholder="Brief 1-line description for service cards"
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-          />
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700">Full Description</label>
-          <textarea
-            rows={4}
-            value={fullDescription}
-            onChange={(e) => setFullDescription(e.target.value)}
-            placeholder="Detailed application procedure, requirements, and eligibility overview..."
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-          />
-        </div>
-      </div>
-
-      {/* Fees & Schedule */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Fees & Schedule</h2>
-
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700">Govt Fee (₹)</label>
-            <input
-              type="number"
-              min="0"
-              value={fee}
-              onChange={(e) => setFee(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="0"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700">Cyber Cafe Fee (₹)</label>
-            <input
-              type="number"
-              min="0"
-              value={serviceCharge}
-              onChange={(e) => setServiceCharge(e.target.value === '' ? '' : Number(e.target.value))}
-              placeholder="50"
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700">Submission Mode</label>
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700">Submission Method</label>
             <select
               value={submissionMethod}
               onChange={(e) => setSubmissionMethod(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             >
-              <option value="Online">Online Portal</option>
-              <option value="Offline">Offline / Physical Submission</option>
+              <option value="Online">Online</option>
+              <option value="Offline Counter">Offline Counter</option>
               <option value="Hybrid">Hybrid</option>
             </select>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700">Start Date</label>
-            <input
-              type="date"
-              value={startDate ? startDate.split('T')[0] : ''}
-              onChange={(e) => setStartDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <label className="text-xs font-bold text-slate-700">Last Date</label>
-            <input
-              type="date"
-              value={lastDate ? lastDate.split('T')[0] : ''}
-              onChange={(e) => setLastDate(e.target.value)}
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-            />
-          </div>
-        </div>
-
-        <div className="space-y-2">
-          <label className="text-xs font-bold text-slate-700">Official Portal URL</label>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-700">Short Summary</label>
           <input
-            type="url"
-            value={officialLink}
-            onChange={(e) => setOfficialLink(e.target.value)}
-            placeholder="https://sevasindhu.karnataka.gov.in"
-            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+            type="text"
+            value={shortDescription}
+            onChange={(e) => setShortDescription(e.target.value)}
+            placeholder="Brief overview visible on search cards..."
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
           />
         </div>
 
-        <div className="flex items-center gap-6 pt-2">
-          <label className="flex items-center gap-2.5 cursor-pointer">
-            <input
-              type="checkbox"
-              checked={featured}
-              onChange={(e) => setFeatured(e.target.checked)}
-              className="w-4 h-4 text-blue-600 rounded-md border-slate-300 focus:ring-blue-500"
-            />
-            <span className="text-xs font-bold text-slate-800">Feature on Homepage</span>
-          </label>
-
-          <div className="flex items-center gap-2">
-            <span className="text-xs font-bold text-slate-700">Order:</span>
-            <input
-              type="number"
-              value={displayOrder}
-              onChange={(e) => setDisplayOrder(Number(e.target.value))}
-              className="w-20 px-2.5 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium text-slate-900"
-            />
-          </div>
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-700">Full Details & Instructions</label>
+          <textarea
+            rows={4}
+            value={fullDescription}
+            onChange={(e) => setFullDescription(e.target.value)}
+            placeholder="Detailed eligibility criteria, step-by-step instructions..."
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+          />
         </div>
       </div>
 
-      {/* Document Checklist Builder */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
+      {/* Pricing & Deadlines */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+        <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">Fees & Schedule</h2>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700">Government Fee (₹)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={fee}
+              onChange={(e) => setFee(e.target.value)}
+              placeholder="Leave blank if not applicable"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700">Cafe Operator Fee (₹)</label>
+            <input
+              type="number"
+              step="0.01"
+              value={serviceCharge}
+              onChange={(e) => setServiceCharge(e.target.value)}
+              placeholder="Leave blank if not applicable"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700">Application Start Date</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700">Deadline / Last Date</label>
+            <input
+              type="date"
+              value={lastDate}
+              onChange={(e) => setLastDate(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+            />
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1.5">
+            <label className="text-xs font-bold text-slate-700">Official Portal URL</label>
+            <input
+              type="url"
+              value={officialLink}
+              onChange={(e) => setOfficialLink(e.target.value)}
+              placeholder="https://sevasindhu.karnataka.gov.in"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+            />
+          </div>
+
+          <div className="flex items-center gap-2 pt-6">
+            <input
+              type="checkbox"
+              id="featured"
+              checked={featured}
+              onChange={(e) => setFeatured(e.target.checked)}
+              className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+            />
+            <label htmlFor="featured" className="text-xs font-bold text-slate-700 select-none cursor-pointer">
+              Pin to Featured Section on Homepage
+            </label>
+          </div>
+        </div>
+
+        <div className="space-y-1.5">
+          <label className="text-xs font-bold text-slate-700">Custom Disclaimer / Caution Notice</label>
+          <textarea
+            rows={2}
+            value={disclaimer}
+            onChange={(e) => setDisclaimer(e.target.value)}
+            placeholder="e.g. Ensure Aadhaar is linked to active mobile number before applying."
+            className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+          />
+        </div>
+      </div>
+
+      {/* Required Documents Checklist */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
               Required Documents Checklist
             </h2>
-            <p className="text-xs text-slate-500">
-              Students and citizens will see these exact documents for verification.
-            </p>
+            <p className="text-xs text-slate-500">Items synced to visitor WhatsApp notifications.</p>
           </div>
           <button
             type="button"
-            onClick={addDocField}
-            className="px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+            onClick={handleAddDocument}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition cursor-pointer"
           >
             <Plus className="w-3.5 h-3.5" />
-            <span>Add Document</span>
+            <span>Add Item</span>
           </button>
         </div>
 
         <div className="space-y-3">
           {documents.map((doc, idx) => (
-            <div key={idx} className="flex items-start gap-3 bg-slate-50 p-3.5 rounded-2xl border border-slate-200/80">
-              <span className="text-xs font-bold text-slate-400 mt-2">{idx + 1}.</span>
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div
+              key={idx}
+              className="flex flex-col sm:flex-row sm:items-center gap-3 p-3.5 bg-slate-50 border border-slate-200/70 rounded-2xl"
+            >
+              <div className="flex-1 space-y-1.5">
                 <input
                   type="text"
-                  placeholder="Document Name (e.g. 1st to 10th Study Certificate)"
+                  required
                   value={doc.document_name}
-                  onChange={(e) => updateDocField(idx, 'document_name', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  onChange={(e) => handleDocumentChange(idx, 'document_name', e.target.value)}
+                  placeholder="Document Name (e.g. 10th Marks Card)"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-xs font-semibold focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                 />
                 <input
                   type="text"
-                  placeholder="Instruction/Note (e.g. Signed by BEO)"
                   value={doc.description || ''}
-                  onChange={(e) => updateDocField(idx, 'description', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
+                  onChange={(e) => handleDocumentChange(idx, 'description', e.target.value)}
+                  placeholder="Note (e.g. Original + 2 Photocopies)"
+                  className="w-full px-3 py-1.5 bg-white border border-slate-200 rounded-xl text-[11px] text-slate-600 focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
                 />
               </div>
+
+              <div className="flex items-center gap-4 self-end sm:self-center">
+                <label className="flex items-center gap-1.5 text-xs font-bold text-slate-600 cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={doc.is_mandatory}
+                    onChange={(e) => handleDocumentChange(idx, 'is_mandatory', e.target.checked)}
+                    className="rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                  />
+                  <span>Mandatory</span>
+                </label>
+
+                <button
+                  type="button"
+                  onClick={() => handleRemoveDocument(idx)}
+                  className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+          ))}
+
+          {documents.length === 0 && (
+            <div className="p-6 text-center text-xs text-slate-400 border border-dashed border-slate-200 rounded-2xl">
+              No documents added yet. Click &quot;Add Item&quot; to build the checklist.
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* Service Images & Posters */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
+        <div className="flex items-center justify-between">
+          <div>
+            <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">
+              Official Posters & Notifications
+            </h2>
+            <p className="text-xs text-slate-500">Upload guidelines, sample formats, or scheme flyers.</p>
+          </div>
+          <label className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-700 rounded-xl text-xs font-bold transition cursor-pointer">
+            {uploadingImage ? (
+              <Loader2 className="w-3.5 h-3.5 animate-spin" />
+            ) : (
+              <>
+                <Upload className="w-3.5 h-3.5" />
+                <span>Upload Poster</span>
+              </>
+            )}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              disabled={uploadingImage}
+              onChange={handleImageUpload}
+            />
+          </label>
+        </div>
+
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          {images.map((img, idx) => (
+            <div
+              key={idx}
+              className="relative group rounded-2xl overflow-hidden border border-slate-200 bg-slate-50"
+            >
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={img.image_url}
+                alt={img.alt_text || 'Poster'}
+                className="w-full aspect-video object-cover"
+              />
               <button
                 type="button"
-                onClick={() => removeDocField(idx)}
-                className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition mt-0.5"
-                title="Remove"
+                onClick={() => handleRemoveImage(idx)}
+                className="absolute top-2 right-2 p-1.5 bg-rose-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition cursor-pointer shadow-xs"
               >
-                <Trash2 className="w-4 h-4" />
+                <Trash2 className="w-3.5 h-3.5" />
               </button>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Service Posters & Images */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4 shadow-xs">
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Service Posters & Images</h2>
-        <ImageUploader
-          images={images}
-          onChange={setImages}
-          bucketName="service-images"
-        />
-      </div>
+      {/* Bottom Save & Delete Actions */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-200">
+        {isEditing ? (
+          <button
+            type="button"
+            disabled={deleting || loading}
+            onClick={handleDeleteService}
+            className="px-4 py-2.5 bg-rose-50 hover:bg-rose-100 border border-rose-200 text-rose-700 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+          >
+            {deleting ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <Trash2 className="w-3.5 h-3.5" />}
+            <span>Delete Service</span>
+          </button>
+        ) : <div />}
 
-      {/* Service Disclaimer */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4 shadow-xs">
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Service Disclaimer</h2>
-        <textarea
-          rows={2}
-          value={disclaimer}
-          onChange={(e) => setDisclaimer(e.target.value)}
-          placeholder="e.g. Applicants must ensure their phone numbers are linked with their records."
-          className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium text-slate-900 focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
-        />
+        <button
+          type="submit"
+          disabled={loading || deleting}
+          className="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer shadow-xs disabled:opacity-50"
+        >
+          {loading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
+          <span>{isEditing ? 'Save Changes' : 'Create Service'}</span>
+        </button>
       </div>
     </form>
   );
