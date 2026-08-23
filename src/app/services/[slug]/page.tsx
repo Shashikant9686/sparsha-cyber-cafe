@@ -1,229 +1,213 @@
-'use client';
+import { Metadata } from 'next';
+import { notFound } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+import ServiceDetailClient from '@/components/services/ServiceDetailClient';
 
-import React, { useState, useEffect } from 'react';
-import Link from 'next/link';
-import { createClient } from '@/lib/supabase/client';
-import { Plus, Search, Trash2, Edit3, ExternalLink, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
+const SITE_NAME = 'Sparsha Cyber Cafe & Online Seva Kendra';
+const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://sparsha-cyber-cafe.vercel.app';
+const SHOP_PHONE = '+91 96861 68988';
 
-interface ServiceRecord {
-  id: string;
-  name: string;
-  slug: string;
-  status: string;
-  fee: number | null;
-  service_charge: number | null;
-  submission_method: string | null;
-  categories: {
-    name: string;
-  } | null;
+interface PageProps {
+  params: Promise<{ slug: string }> | { slug: string };
 }
 
-export default function AdminServicesPage() {
-  const supabase = createClient();
+// 1. Static Paths Pre-generation for fast load times
+export async function generateStaticParams() {
+  try {
+    const supabase = await createClient();
+    const { data: services } = await supabase
+      .from('services')
+      .select('slug')
+      .eq('status', 'active');
 
-  const [services, setServices] = useState<ServiceRecord[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+    return (services || []).map((service) => ({
+      slug: service.slug,
+    }));
+  } catch (err) {
+    console.error('Failed to generate static params:', err);
+    return [];
+  }
+}
 
-  useEffect(() => {
-    let isMounted = true;
+// 2. Dynamic SEO & Social Share Metadata Generator
+export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
 
-    async function loadServices() {
-      try {
-        setLoading(true);
-        setErrorMsg(null);
+  const supabase = await createClient();
+  const { data: service } = await supabase
+    .from('services')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
 
-        const { data, error } = await supabase
-          .from('services')
-          .select('id, name, slug, status, fee, service_charge, submission_method, categories(name)')
-          .order('created_at', { ascending: false });
-
-        if (error) throw error;
-        if (isMounted) {
-          setServices((data as unknown as ServiceRecord[]) || []);
-        }
-      } catch (err: unknown) {
-        console.error('Failed to fetch services:', err);
-        if (isMounted) {
-          setErrorMsg(err instanceof Error ? err.message : 'Could not fetch services list');
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
-
-    loadServices();
-
-    return () => {
-      isMounted = false;
+  if (!service) {
+    return {
+      title: 'Service Not Found | Sparsha Online Seva',
+      description: 'The requested government or online application service is unavailable.',
     };
-  }, [supabase]);
+  }
 
-  const handleDelete = async (id: string, name: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
+  const title = `${service.name} | Application & Required Documents - Sparsha Cyber Cafe`;
+  const description =
+    service.prerequisites ||
+    service.steps ||
+    `Apply for ${service.name} at Sparsha Cyber Cafe Aland. Check required documents checklist, govt official fees, and processing times.`;
 
-    try {
-      setDeletingId(id);
-      await supabase.from('required_documents').delete().eq('service_id', id);
-      await supabase.from('service_images').delete().eq('service_id', id);
+  return {
+    title,
+    description,
+    keywords: [
+      service.name,
+      'Sparsha Cyber Cafe Aland',
+      'Online Application Kalaburagi',
+      'Seva Sindhu Aland',
+      'Required Documents Checklist'
+    ],
+    alternates: {
+      canonical: `${SITE_URL}/services/${slug}`,
+    },
+    openGraph: {
+      title,
+      description,
+      url: `${SITE_URL}/services/${slug}`,
+      siteName: SITE_NAME,
+      type: 'article',
+      locale: 'en_IN',
+    },
+    twitter: {
+      card: 'summary_large_image',
+      title,
+      description,
+    },
+  };
+}
 
-      const { error } = await supabase.from('services').delete().eq('id', id);
-      if (error) throw error;
+// 3. Full Server Page Component
+export default async function ServiceDetailPage({ params }: PageProps) {
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
 
-      setServices((prev) => prev.filter((s) => s.id !== id));
-    } catch (err: unknown) {
-      console.error('Failed to delete service:', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete service');
-    } finally {
-      setDeletingId(null);
-    }
+  const supabase = await createClient();
+
+  // Fetch Service Record
+  const { data: service, error: serviceError } = await supabase
+    .from('services')
+    .select('*')
+    .eq('slug', slug)
+    .maybeSingle();
+
+  if (serviceError || !service) {
+    console.error('Service lookup failed:', slug, serviceError);
+    notFound();
+  }
+
+  // Fetch Category
+  let categoryData = null;
+  if (service.category_id) {
+    const { data: cat } = await supabase
+      .from('categories')
+      .select('*')
+      .eq('id', service.category_id)
+      .maybeSingle();
+    categoryData = cat;
+  }
+
+  // Fetch Related Required Documents
+  const { data: documents } = await supabase
+    .from('required_documents')
+    .select('*')
+    .eq('service_id', service.id)
+    .order('display_order', { ascending: true });
+
+  // Fetch Related Images / Samples
+  const { data: images } = await supabase
+    .from('service_images')
+    .select('*')
+    .eq('service_id', service.id)
+    .order('display_order', { ascending: true });
+
+  // Fetch Related Services in same category for suggestions
+  let relatedServices: Array<{ id: string; name: string; slug: string; fee: number | null }> = [];
+  if (service.category_id) {
+    const { data: related } = await supabase
+      .from('services')
+      .select('id, name, slug, fee')
+      .eq('category_id', service.category_id)
+      .neq('id', service.id)
+      .eq('status', 'active')
+      .limit(4);
+    relatedServices = related || [];
+  }
+
+  // Build Structured Data for Google Rich Snippets (Schema.org JSON-LD)
+  const structuredData = {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'Service',
+        name: service.name,
+        serviceType: categoryData?.name || 'Online Citizen Service',
+        provider: {
+          '@type': 'LocalBusiness',
+          name: SITE_NAME,
+          address: {
+            '@type': 'PostalAddress',
+            addressLocality: 'Aland',
+            addressRegion: 'Karnataka',
+            addressCountry: 'IN',
+          },
+          telephone: SHOP_PHONE,
+        },
+        offers: {
+          '@type': 'Offer',
+          priceCurrency: 'INR',
+          price: (service.fee ?? 0) + (service.service_charge ?? 0),
+          description: `Govt Fee: ₹${service.fee ?? 0}, Service Charge: ₹${service.service_charge ?? 0}`,
+        },
+        termsOfService: `${SITE_URL}/services/${slug}`,
+      },
+      {
+        '@type': 'BreadcrumbList',
+        itemListElement: [
+          {
+            '@type': 'ListItem',
+            position: 1,
+            name: 'Home',
+            item: SITE_URL,
+          },
+          {
+            '@type': 'ListItem',
+            position: 2,
+            name: 'Services',
+            item: `${SITE_URL}/services`,
+          },
+          {
+            '@type': 'ListItem',
+            position: 3,
+            name: service.name,
+            item: `${SITE_URL}/services/${slug}`,
+          },
+        ],
+      },
+    ],
   };
 
-  const filtered = services.filter((s) =>
-    (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
-    (s.categories?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const completeService = {
+    ...service,
+    categories: categoryData,
+    required_documents: documents || [],
+    service_images: images || [],
+    relatedServices,
+  };
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-xl font-bold text-slate-900">Services Catalog</h1>
-          <p className="text-xs text-slate-500">
-            Create, update fees, and manage required document checklists
-          </p>
-        </div>
-
-        <Link
-          href="/admin/services/new"
-          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs w-fit"
-        >
-          <Plus className="w-4 h-4" />
-          <span>Add New Service</span>
-        </Link>
-      </div>
-
-      {errorMsg && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs">
-          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
-          <span>{errorMsg}</span>
-        </div>
-      )}
-
-      {/* Search Filter */}
-      <div className="relative max-w-sm">
-        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
-        <input
-          type="text"
-          placeholder="Search by name or category..."
-          value={searchTerm}
-          onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden transition"
-        />
-      </div>
-
-      {/* Table Card */}
-      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xs">
-        {loading ? (
-          <div className="p-12 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs">
-            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
-            <span>Loading services catalog...</span>
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="p-12 text-center text-xs text-slate-400 italic">
-            No matching services found.
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
-                  <th className="py-3.5 px-4">Service Name</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Pricing</th>
-                  <th className="py-3.5 px-4">Status</th>
-                  <th className="py-3.5 px-4 text-right">Actions</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filtered.map((item) => {
-                  const isPublic = (item.status || '').toLowerCase() === 'active';
-                  return (
-                    <tr key={item.id} className="hover:bg-slate-50/70 transition">
-                      <td className="py-3.5 px-4 font-bold text-slate-900">
-                        <div className="flex items-center gap-2">
-                          <span>{item.name}</span>
-                          <Link
-                            href={`/services/${item.slug}`}
-                            target="_blank"
-                            className="text-slate-400 hover:text-blue-600 transition"
-                            title="View public page"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </Link>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 font-medium text-slate-600">
-                        {item.categories?.name || '—'}
-                      </td>
-                      <td className="py-3.5 px-4 font-medium">
-                        {item.fee != null || item.service_charge != null ? (
-                          <span>
-                            Govt: ₹{item.fee ?? 0} | Cafe: ₹{item.service_charge ?? 0}
-                          </span>
-                        ) : (
-                          <span className="text-slate-400 italic">Not set</span>
-                        )}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <div className="flex items-center gap-1.5">
-                          <span
-                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${
-                              isPublic
-                                ? 'bg-emerald-50 text-emerald-700'
-                                : 'bg-amber-50 text-amber-700'
-                            }`}
-                          >
-                            {isPublic ? <Eye className="w-3 h-3 text-emerald-600" /> : <EyeOff className="w-3 h-3 text-slate-400" />}
-                            <span>{item.status || 'draft'}</span>
-                          </span>
-                        </div>
-                      </td>
-                      <td className="py-3.5 px-4 text-right space-x-2">
-                        <Link
-                          href={`/admin/services/${item.id}`}
-                          className="inline-flex p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
-                          title="Edit Service"
-                        >
-                          <Edit3 className="w-4 h-4" />
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(item.id, item.name)}
-                          disabled={deletingId === item.id}
-                          className="inline-flex p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
-                          title="Delete Service"
-                        >
-                          {deletingId === item.id ? (
-                            <Loader2 className="w-4 h-4 animate-spin" />
-                          ) : (
-                            <Trash2 className="w-4 h-4" />
-                          )}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
-      </div>
-    </div>
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(structuredData) }}
+      />
+      <ServiceDetailClient service={completeService} />
+    </>
   );
 }
