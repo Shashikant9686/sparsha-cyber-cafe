@@ -32,6 +32,7 @@ export interface ServiceImage {
   service_id: string;
   image_url: string;
   caption?: string | null;
+  alt_text?: string | null;
   display_order: number;
   created_at?: string;
 }
@@ -41,14 +42,21 @@ export interface Service {
   category_id?: string | null;
   name: string;
   slug: string;
+  title?: string | null;
+  short_description?: string | null;
+  full_description?: string | null;
+  description?: string | null;
   submission_method?: string | null;
   fee?: number | null;
+  official_fee?: number | null;
   service_charge?: number | null;
   estimated_days?: string | null;
+  processing_time?: string | null;
   prerequisites?: string | null;
+  eligibility?: string | null;
   steps?: string | null;
   faq?: Json | null;
-  status: 'active' | 'inactive' | 'draft';
+  status: 'active' | 'inactive' | 'draft' | string;
   display_order?: number;
   created_at?: string;
   updated_at?: string;
