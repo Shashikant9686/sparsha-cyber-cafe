@@ -65,12 +65,20 @@ function extractErrorMessage(err: unknown): string {
   return String(err);
 }
 
+function normalizeSubmissionMethod(val?: string | null): string {
+  if (!val) return 'online';
+  const low = val.toLowerCase();
+  if (low === 'offline' || low === 'offline counter' || low === 'offline_counter') return 'offline';
+  if (low === 'both' || low === 'hybrid') return 'both';
+  return 'online';
+}
+
 export default function ServiceForm({ initialData }: ServiceFormProps) {
   const router = useRouter();
   const supabase = createClient();
   const isEditing = Boolean(initialData?.id);
 
-  // Form fields
+  // Form Fields mapped to database columns
   const [name, setName] = useState(initialData?.name || initialData?.title || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
@@ -95,7 +103,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
     initialData?.featured ?? initialData?.is_featured ?? false
   );
   const [submissionMethod, setSubmissionMethod] = useState<string>(
-    initialData?.submission_method || 'Online'
+    normalizeSubmissionMethod(initialData?.submission_method)
   );
   const [officialLink, setOfficialLink] = useState(initialData?.official_link || '');
   const [customDisclaimer, setCustomDisclaimer] = useState(
@@ -108,7 +116,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
     initialData?.last_date ? initialData.last_date.split('T')[0] : ''
   );
 
-  // Documents & Images
+  // Documents & Images Sub-items
   const [documents, setDocuments] = useState<Array<{ id?: string; document_name: string; is_mandatory: boolean; description?: string }>>(
     initialData?.required_documents || []
   );
@@ -116,6 +124,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
     initialData?.service_images || []
   );
 
+  // Status & Categories
   const [categories, setCategories] = useState<Category[]>([]);
   const [loading, setLoading] = useState(false);
   const [deleting, setDeleting] = useState(false);
@@ -241,7 +250,6 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       const parsedFee = fee === '' ? null : parseFloat(fee);
       const parsedServiceCharge = serviceCharge === '' ? null : parseFloat(serviceCharge);
 
-      // Clean payload with proper null handling
       const servicePayload = {
         name: name.trim(),
         title: name.trim(),
@@ -257,7 +265,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         status,
         featured,
         is_featured: featured,
-        submission_method: submissionMethod,
+        submission_method: submissionMethod.toLowerCase(),
         official_link: officialLink.trim() || null,
         custom_disclaimer: customDisclaimer.trim() || null,
         start_date: startDate ? new Date(startDate).toISOString() : null,
@@ -337,6 +345,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl pb-16">
+      {/* Top Header & Actions */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
@@ -377,6 +386,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       </div>
 
+      {/* Error Banner */}
       {errorMessage && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-start gap-2.5 shadow-xs">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -453,9 +463,9 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
               onChange={(e) => setSubmissionMethod(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
             >
-              <option value="Online">Online</option>
-              <option value="Offline Counter">Offline Counter</option>
-              <option value="Hybrid">Hybrid</option>
+              <option value="online">Online</option>
+              <option value="offline">Offline Counter</option>
+              <option value="both">Hybrid (Online & Counter)</option>
             </select>
           </div>
         </div>
