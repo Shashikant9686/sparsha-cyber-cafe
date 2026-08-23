@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Search, Trash2, Edit3, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Trash2, Edit3, ExternalLink, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface ServiceRecord {
   id: string;
@@ -146,72 +146,86 @@ export default function AdminServicesPage() {
                   <th className="py-3.5 px-4">Service Name</th>
                   <th className="py-3.5 px-4">Category</th>
                   <th className="py-3.5 px-4">Pricing</th>
-                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4">
+                    <div className="flex items-center gap-1">
+                      <span>Status</span>
+                      <span className="text-[10px] lowercase font-normal text-slate-400">(only active is public)</span>
+                    </div>
+                  </th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-100 text-slate-700">
-                {filtered.map((item) => (
-                  <tr key={item.id} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3.5 px-4 font-bold text-slate-900">
-                      <div className="flex items-center gap-2">
-                        <span>{item.name}</span>
-                        <Link
-                          href={`/services/${item.slug}`}
-                          target="_blank"
-                          className="text-slate-400 hover:text-blue-600 transition"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Link>
-                      </div>
-                    </td>
-                    <td className="py-3.5 px-4 font-medium text-slate-600">
-                      {item.categories?.name || '—'}
-                    </td>
-                    <td className="py-3.5 px-4 font-medium">
-                      {item.fee != null || item.service_charge != null ? (
-                        <span>
-                          Govt: ₹{item.fee ?? 0} | Cafe: ₹{item.service_charge ?? 0}
-                        </span>
-                      ) : (
-                        <span className="text-slate-400 italic">Not set</span>
-                      )}
-                    </td>
-                    <td className="py-3.5 px-4">
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${
-                          item.status === 'active'
-                            ? 'bg-emerald-50 text-emerald-700'
-                            : item.status === 'draft'
-                            ? 'bg-amber-50 text-amber-700'
-                            : 'bg-slate-100 text-slate-600'
-                        }`}
-                      >
-                        {item.status}
-                      </span>
-                    </td>
-                    <td className="py-3.5 px-4 text-right space-x-2">
-                      <Link
-                        href={`/admin/services/${item.id}`}
-                        className="inline-flex p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
-                      >
-                        <Edit3 className="w-4 h-4" />
-                      </Link>
-                      <button
-                        type="button"
-                        onClick={() => handleDelete(item.id, item.name)}
-                        disabled={deletingId === item.id}
-                        className="inline-flex p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
-                      >
-                        {deletingId === item.id ? (
-                          <Loader2 className="w-4 h-4 animate-spin" />
+                {filtered.map((item) => {
+                  const isPublic = item.status === 'active';
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50/70 transition">
+                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                        <div className="flex items-center gap-2">
+                          <span>{item.name}</span>
+                          {isPublic && (
+                            <Link
+                              href={`/services/${item.slug}`}
+                              target="_blank"
+                              className="text-slate-400 hover:text-blue-600 transition"
+                              title="View public page"
+                            >
+                              <ExternalLink className="w-3.5 h-3.5" />
+                            </Link>
+                          )}
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-slate-600">
+                        {item.categories?.name || '—'}
+                      </td>
+                      <td className="py-3.5 px-4 font-medium">
+                        {item.fee != null || item.service_charge != null ? (
+                          <span>
+                            Govt: ₹{item.fee ?? 0} | Cafe: ₹{item.service_charge ?? 0}
+                          </span>
                         ) : (
-                          <Trash2 className="w-4 h-4" />
+                          <span className="text-slate-400 italic">Not set</span>
                         )}
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${
+                              item.status === 'active'
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : item.status === 'draft'
+                                ? 'bg-amber-50 text-amber-700'
+                                : 'bg-slate-100 text-slate-600'
+                            }`}
+                          >
+                            {isPublic ? <Eye className="w-3 h-3 text-emerald-600" /> : <EyeOff className="w-3 h-3 text-slate-400" />}
+                            <span>{item.status}</span>
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right space-x-2">
+                        <Link
+                          href={`/admin/services/${item.id}`}
+                          className="inline-flex p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.id, item.name)}
+                          disabled={deletingId === item.id}
+                          className="inline-flex p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
+                        >
+                          {deletingId === item.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
