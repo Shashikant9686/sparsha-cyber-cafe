@@ -19,18 +19,22 @@ export default function LoginPage() {
 
     try {
       const supabase = createClient();
-      const { error: signInError } = await supabase.auth.signInWithPassword({
+      const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email: email.trim(),
         password,
       });
 
       if (signInError) throw signInError;
 
-      router.push('/admin');
-      router.refresh();
+      if (data?.session) {
+        // Force full page navigation so server cookies update properly
+        window.location.href = '/admin';
+      } else {
+        router.push('/admin');
+        router.refresh();
+      }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Invalid login credentials');
-    } finally {
       setLoading(false);
     }
   };
@@ -82,7 +86,7 @@ export default function LoginPage() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs"
+            className="w-full py-3 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-2 shadow-xs cursor-pointer"
           >
             {loading ? (
               <Loader2 className="w-4 h-4 animate-spin" />
