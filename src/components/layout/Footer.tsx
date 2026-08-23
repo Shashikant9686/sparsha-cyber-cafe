@@ -1,84 +1,73 @@
 import React from 'react';
 import Link from 'next/link';
-import { MapPin, Phone, Mail, Clock, ShieldCheck, Navigation } from 'lucide-react';
-import { BUSINESS_INFO } from '@/lib/constants';
+import WebsiteQR from '@/components/WebsiteQR';
+import { ShieldCheck, Phone, Mail, Clock, MapPin, Navigation } from 'lucide-react';
 
 export default function Footer() {
   return (
-    <footer className="bg-slate-900 text-slate-300 border-t border-slate-800 mt-auto">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
-          {/* Column 1: Brand Info */}
-          <div className="space-y-3">
-            <div className="flex items-center gap-2 text-white">
-              <ShieldCheck className="w-6 h-6 text-blue-400" />
-              <span className="font-black text-sm tracking-tight">{BUSINESS_INFO.name}</span>
+    <footer className="bg-slate-950 text-white border-t border-slate-900 pt-16 pb-12">
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+          {/* Brand Col */}
+          <div className="space-y-4">
+            <div className="flex items-center gap-2">
+              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white">
+                <ShieldCheck className="w-5 h-5" />
+              </div>
+              <span className="font-black text-sm tracking-tight">SPARSHA CYBER CAFE & SEVA KENDRA</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
-              Authorized digital facilitation center in Aland for 371(J) quota certificates, Bhoomi RTC Pahani extracts, KCET/NEET option entry, and government recruitment applications.
+              Authorized digital facilitation center in Aland for 371(J) quota certificates, Bhoomi RTC Pahani extracts, KCET/NEET option entry, and government applications.
             </p>
           </div>
 
-          {/* Column 2: Navigation */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white">Quick Navigation</h3>
-            <ul className="space-y-1.5 text-xs text-slate-400">
-              <li><Link href="/" className="hover:text-white transition">Home</Link></li>
-              <li><Link href="/services" className="hover:text-white transition">Services Directory</Link></li>
-              <li><Link href="/counselling" className="hover:text-white transition">Admission Desk (KCET / NEET)</Link></li>
-              <li><Link href="/contact" className="hover:text-white transition">Contact & Timings</Link></li>
+          {/* Quick Navigation */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Quick Navigation</h4>
+            <ul className="space-y-2 text-xs text-slate-400 font-medium">
+              <li>
+                <Link href="/" className="hover:text-blue-400 transition">Home Portal</Link>
+              </li>
+              <li>
+                <Link href="/services" className="hover:text-blue-400 transition">Services Directory</Link>
+              </li>
+              <li>
+                <Link href="/counselling" className="hover:text-blue-400 transition">Admission Desk (KCET / NEET)</Link>
+              </li>
+              <li>
+                <Link href="/contact" className="hover:text-blue-400 transition">Contact & Timings</Link>
+              </li>
             </ul>
           </div>
 
-          {/* Column 3: Timings & Support */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white">Center Timings</h3>
-            <div className="text-xs text-slate-400 space-y-1">
-              <p className="flex items-center gap-1.5">
-                <Clock className="w-3.5 h-3.5 text-blue-400 shrink-0" />
-                <span>{BUSINESS_INFO.workingHours.full}</span>
-              </p>
-              <p className="flex items-center gap-1.5 pt-1 text-slate-400">
-                <Mail className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                <a href={`mailto:${BUSINESS_INFO.email}`} className="hover:text-white break-all transition">
-                  {BUSINESS_INFO.email}
-                </a>
-              </p>
+          {/* Center Details */}
+          <div className="space-y-3 text-xs text-slate-400">
+            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Center Details</h4>
+            <div className="flex items-start gap-2">
+              <Clock className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <span>Monday – Sunday: 8:00 AM – 8:00 PM</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <span>Near Lingayat Bhavan, Sagri Complex, Razvi Road, Aland, Karnataka 585302</span>
+            </div>
+            <div className="flex items-start gap-2">
+              <Phone className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
+              <span>+91 7090161083 / +91 7483941814</span>
             </div>
           </div>
 
-          {/* Column 4: Location */}
-          <div className="space-y-2">
-            <h3 className="text-xs font-bold uppercase tracking-wider text-white">Location</h3>
-            <p className="text-xs text-slate-400 flex items-start gap-1.5 leading-relaxed">
-              <MapPin className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
-              <span>{BUSINESS_INFO.address}</span>
-            </p>
-            <div className="text-xs text-slate-400 space-y-1 pt-1">
-              <p className="flex items-center gap-1.5">
-                <Phone className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
-                <span>{BUSINESS_INFO.phonePrimary} / {BUSINESS_INFO.phoneSecondary}</span>
-              </p>
-              <a
-                href={BUSINESS_INFO.googleMapsUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-blue-400 hover:text-blue-300 font-semibold pt-1"
-              >
-                <Navigation className="w-3 h-3" />
-                <span>Get Route (Plus Code: {BUSINESS_INFO.plusCode})</span>
-              </a>
-            </div>
+          {/* Scannable Counter QR Code */}
+          <div className="space-y-3">
+            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Scan to Mobile</h4>
+            <WebsiteQR />
           </div>
         </div>
 
-        <div className="mt-8 pt-6 border-t border-slate-800 flex flex-col sm:flex-row items-center justify-between text-[11px] text-slate-500 gap-2">
-          <span>© 2026 {BUSINESS_INFO.name}. All rights reserved.</span>
-          {/* Always opens password/login prompt */}
-          <Link 
-            href="/login" 
-            className="hover:text-slate-300 transition text-[11px] font-semibold text-slate-400"
-          >
+        {/* Bottom Bar */}
+        <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
+          <p>© 2026 SPARSHA CYBER CAFE & ONLINE SEVA KENDRA. All rights reserved.</p>
+          <Link href="/login" className="hover:text-slate-300 transition">
             Operator / Admin Login
           </Link>
         </div>
