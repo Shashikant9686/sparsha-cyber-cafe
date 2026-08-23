@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MessageSquare, CheckCircle2, FileText } from 'lucide-react';
+import { MessageSquare, CheckCircle2 } from 'lucide-react';
 import WhatsAppChecklistModal from '@/components/WhatsAppChecklistModal';
 import type { RequiredDocument } from '@/lib/types';
 
@@ -70,7 +70,6 @@ export default function ServiceChecklistSection({
         </div>
       )}
 
-      {/* WhatsApp Checklist Modal */}
       <WhatsAppChecklistModal
         isOpen={isModalOpen}
         onClose={() => setIsModalOpen(false)}

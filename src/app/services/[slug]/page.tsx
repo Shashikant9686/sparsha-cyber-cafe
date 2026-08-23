@@ -8,7 +8,6 @@ import {
   ExternalLink, 
   ShieldAlert, 
   Tag, 
-  Monitor, 
   Image as ImageIcon 
 } from 'lucide-react';
 import ServiceChecklistSection from '@/components/services/ServiceChecklistSection';
@@ -30,7 +29,6 @@ interface ServiceDetail {
   official_link?: string | null;
   start_date?: string | null;
   last_date?: string | null;
-  submission_method?: string | null;
   required_documents?: RequiredDocument[];
   service_images?: ServiceImage[];
 }
@@ -53,7 +51,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
     .eq('slug', slug)
     .single();
 
-  if (error || !data || data.status === 'Hidden') {
+  if (error || !data || data.status?.toLowerCase() === 'hidden') {
     notFound();
   }
 
@@ -63,9 +61,15 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
     (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
   );
 
+  const hasFee = service.fee !== null && service.fee !== undefined;
+  const hasServiceCharge = service.service_charge !== null && service.service_charge !== undefined;
+  const hasStartDate = Boolean(service.start_date);
+  const hasLastDate = Boolean(service.last_date);
+  const showMetaGrid = hasFee || hasServiceCharge || hasStartDate || hasLastDate;
+
   return (
     <div className="max-w-4xl mx-auto space-y-8 pb-16">
-      {/* Top Breadcrumb / Back */}
+      {/* Top Breadcrumb / Category Badge */}
       <div className="flex items-center justify-between">
         <Link
           href="/services"
@@ -74,29 +78,22 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
           <ArrowLeft className="w-4 h-4" />
           <span>Back to All Services</span>
         </Link>
-        <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
-          {service.categories?.name || 'General Service'}
-        </span>
+        {service.categories?.name && (
+          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
+            {service.categories.name}
+          </span>
+        )}
       </div>
 
       {/* Main Header Card */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="space-y-2">
-          <div className="flex flex-wrap items-center gap-2 text-xs text-slate-400">
-            {service.submission_method && (
-              <>
-                <span className="flex items-center gap-1 font-semibold text-slate-600">
-                  <Monitor className="w-3.5 h-3.5" />
-                  {service.submission_method}
-                </span>
-                <span>•</span>
-              </>
-            )}
-            <span className="flex items-center gap-1">
-              <Tag className="w-3.5 h-3.5" />
-              {service.categories?.name || 'General'}
-            </span>
-          </div>
+          {service.categories?.name && (
+            <div className="flex items-center gap-1 text-xs text-slate-500 font-semibold">
+              <Tag className="w-3.5 h-3.5 text-slate-400" />
+              <span>{service.categories.name}</span>
+            </div>
+          )}
 
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
             {service.name}
@@ -109,38 +106,48 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
           )}
         </div>
 
-        {/* Pricing & Deadlines Grid */}
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
-          <div className="p-3.5 bg-slate-50 rounded-2xl">
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">Govt Fee</span>
-            <span className="text-sm font-black text-slate-900">
-              {service.fee != null ? `₹${service.fee}` : 'Free'}
-            </span>
-          </div>
+        {/* Conditional Pricing & Dates Grid */}
+        {showMetaGrid && (
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
+            {hasFee && (
+              <div className="p-3.5 bg-slate-50 rounded-2xl">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Official Fee</span>
+                <span className="text-sm font-black text-slate-900">
+                  {service.fee === 0 ? 'Free' : `₹${service.fee}`}
+                </span>
+              </div>
+            )}
 
-          <div className="p-3.5 bg-slate-50 rounded-2xl">
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">Cafe Operator Fee</span>
-            <span className="text-sm font-black text-slate-900">
-              {service.service_charge != null ? `₹${service.service_charge}` : '₹0'}
-            </span>
-          </div>
+            {hasServiceCharge && (
+              <div className="p-3.5 bg-slate-50 rounded-2xl">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Service Charge</span>
+                <span className="text-sm font-black text-slate-900">
+                  {service.service_charge === 0 ? '₹0' : `₹${service.service_charge}`}
+                </span>
+              </div>
+            )}
 
-          <div className="p-3.5 bg-slate-50 rounded-2xl">
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">Start Date</span>
-            <span className="text-xs font-bold text-slate-800 flex items-center gap-1 mt-0.5">
-              <Calendar className="w-3 h-3 text-slate-400" />
-              {service.start_date ? new Date(service.start_date).toLocaleDateString() : 'Active'}
-            </span>
-          </div>
+            {hasStartDate && (
+              <div className="p-3.5 bg-slate-50 rounded-2xl">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Start Date</span>
+                <span className="text-xs font-bold text-slate-800 flex items-center gap-1 mt-0.5">
+                  <Calendar className="w-3 h-3 text-slate-400" />
+                  {new Date(service.start_date as string).toLocaleDateString()}
+                </span>
+              </div>
+            )}
 
-          <div className="p-3.5 bg-slate-50 rounded-2xl">
-            <span className="text-[10px] font-bold uppercase text-slate-400 block">Deadline / Last Date</span>
-            <span className="text-xs font-bold text-rose-600 flex items-center gap-1 mt-0.5">
-              <Calendar className="w-3 h-3" />
-              {service.last_date ? new Date(service.last_date).toLocaleDateString() : 'Ongoing'}
-            </span>
+            {hasLastDate && (
+              <div className="p-3.5 bg-slate-50 rounded-2xl">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block">Last Date</span>
+                <span className="text-xs font-bold text-rose-600 flex items-center gap-1 mt-0.5">
+                  <Calendar className="w-3 h-3 text-rose-500" />
+                  {new Date(service.last_date as string).toLocaleDateString()}
+                </span>
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {service.official_link && (
           <div className="pt-2">
@@ -169,7 +176,7 @@ export default async function ServiceDetailPage({ params }: ServicePageProps) {
         </div>
       )}
 
-      {/* Interactive Required Documents Checklist */}
+      {/* Interactive Required Documents Section */}
       <ServiceChecklistSection serviceName={service.name} documents={documents} />
 
       {/* Service Posters & Image References */}
