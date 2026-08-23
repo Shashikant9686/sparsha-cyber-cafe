@@ -22,6 +22,7 @@ export interface RequiredDocument {
   document_name: string;
   is_mandatory: boolean;
   notes?: string | null;
+  description?: string | null;
   display_order: number;
   created_at?: string;
 }
