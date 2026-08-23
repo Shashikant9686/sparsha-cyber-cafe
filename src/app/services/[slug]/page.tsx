@@ -16,7 +16,6 @@ interface Props {
   params: Promise<{ slug: string }> | { slug: string };
 }
 
-// Helper to check for valid UUID format
 function isUUID(str: string) {
   return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
 }
@@ -28,18 +27,17 @@ export default async function ServiceDetailPage({ params }: Props) {
 
   const supabase = await createClient();
 
-  // 1. Fetch service by slug first
+  // 1. Fetch canonical service with category relation
   let { data: service, error: serviceError } = await supabase
     .from('services')
-    .select('*')
+    .select('*, categories(name)')
     .eq('slug', decodedSlug)
     .maybeSingle();
 
-  // If not found by slug and param is a valid UUID, search by ID
   if (!service && isUUID(decodedSlug)) {
     const { data: serviceById, error: idError } = await supabase
       .from('services')
-      .select('*')
+      .select('*, categories(name)')
       .eq('id', decodedSlug)
       .maybeSingle();
 
@@ -50,12 +48,7 @@ export default async function ServiceDetailPage({ params }: Props) {
   }
 
   if (serviceError) {
-    console.error('Error loading service by slug:', {
-      message: serviceError.message,
-      details: serviceError.details,
-      hint: serviceError.hint,
-      code: serviceError.code,
-    });
+    console.error('Error loading service by slug:', serviceError);
   }
 
   if (!service) {
@@ -76,10 +69,14 @@ export default async function ServiceDetailPage({ params }: Props) {
     .eq('service_id', service.id)
     .order('display_order', { ascending: true });
 
-  const displayName = service.name || service.title || 'Service Details';
-  const displayFee = service.official_fee != null ? service.official_fee : service.fee;
+  const displayName = service.name || 'Service Details';
+  const categoryName = (service.categories as { name?: string } | null)?.name;
   const displayDocs = docs || [];
   const displayImages = images || [];
+
+  const hasGovtFee = service.fee != null;
+  const hasServiceCharge = service.service_charge != null;
+  const hasPricing = hasGovtFee || hasServiceCharge;
 
   // Build WhatsApp share link
   const docChecklistText = displayDocs.length > 0
@@ -106,9 +103,9 @@ export default async function ServiceDetailPage({ params }: Props) {
         {/* Main Header Card */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
           <div className="flex flex-wrap items-center gap-2">
-            {service.category && (
+            {categoryName && (
               <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">
-                {service.category}
+                {categoryName}
               </span>
             )}
             <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full capitalize">
@@ -120,46 +117,52 @@ export default async function ServiceDetailPage({ params }: Props) {
             {displayName}
           </h1>
 
-          {(service.short_description || service.description) && (
-            <p className="text-sm text-slate-600 leading-relaxed">
-              {service.short_description || service.description}
+          {service.short_description && (
+            <p className="text-sm text-slate-600 leading-relaxed font-medium">
+              {service.short_description}
             </p>
           )}
 
-          {/* Pricing & Time Stats */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100">
-            <div className="p-3.5 bg-slate-50 rounded-2xl">
-              <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-                <IndianRupee className="w-3.5 h-3.5" />
-                <span>Govt Fee</span>
-              </div>
-              <div className="text-base font-black text-slate-900 mt-0.5">
-                {displayFee != null ? `₹${displayFee}` : 'Free / Nil'}
-              </div>
-            </div>
-
-            <div className="p-3.5 bg-slate-50 rounded-2xl">
-              <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-                <IndianRupee className="w-3.5 h-3.5" />
-                <span>Cafe Service Fee</span>
-              </div>
-              <div className="text-base font-black text-blue-600 mt-0.5">
-                {service.service_charge != null ? `₹${service.service_charge}` : 'Nominal'}
-              </div>
-            </div>
-
-            {service.processing_time && (
-              <div className="p-3.5 bg-slate-50 rounded-2xl col-span-2 sm:col-span-1">
-                <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-                  <Clock className="w-3.5 h-3.5" />
-                  <span>Timeline</span>
+          {/* Conditional Pricing & Timeline Stats */}
+          {(hasPricing || service.processing_time) && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100">
+              {hasGovtFee && (
+                <div className="p-3.5 bg-slate-50 rounded-2xl">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                    <IndianRupee className="w-3.5 h-3.5" />
+                    <span>Govt Fee</span>
+                  </div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">
+                    ₹{service.fee}
+                  </div>
                 </div>
-                <div className="text-base font-black text-slate-900 mt-0.5">
-                  {service.processing_time}
+              )}
+
+              {hasServiceCharge && (
+                <div className="p-3.5 bg-slate-50 rounded-2xl">
+                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                    <IndianRupee className="w-3.5 h-3.5" />
+                    <span>Cafe Service Fee</span>
+                  </div>
+                  <div className="text-base font-black text-blue-600 mt-0.5">
+                    ₹{service.service_charge}
+                  </div>
                 </div>
-              </div>
-            )}
-          </div>
+              )}
+
+              {service.processing_time && (
+                <div className={`p-3.5 bg-slate-50 rounded-2xl ${!hasPricing ? 'col-span-2 sm:col-span-3' : 'col-span-2 sm:col-span-1'}`}>
+                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                    <Clock className="w-3.5 h-3.5" />
+                    <span>Timeline</span>
+                  </div>
+                  <div className="text-base font-black text-slate-900 mt-0.5">
+                    {service.processing_time}
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {/* Actions: WhatsApp + Portal */}
           <div className="flex flex-col sm:flex-row gap-3 pt-2">
@@ -188,13 +191,13 @@ export default async function ServiceDetailPage({ params }: Props) {
         </div>
 
         {/* Custom Disclaimer Alert */}
-        {(service.custom_disclaimer || service.disclaimer) && (
+        {service.custom_disclaimer && (
           <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-900 shadow-xs">
             <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
             <div className="text-xs space-y-1">
               <span className="font-bold">Important Notice:</span>
               <p className="text-amber-800 leading-relaxed">
-                {service.custom_disclaimer || service.disclaimer}
+                {service.custom_disclaimer}
               </p>
             </div>
           </div>
