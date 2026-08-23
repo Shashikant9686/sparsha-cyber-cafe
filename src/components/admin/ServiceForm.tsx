@@ -153,7 +153,11 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       ]);
     } catch (err: unknown) {
       console.error('Image upload failed:', err);
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to upload image');
+      let msg = 'Failed to upload image';
+      if (typeof err === 'object' && err !== null && 'message' in err) {
+        msg = String((err as { message: string }).message);
+      }
+      setErrorMessage(msg);
     } finally {
       setUploadingImage(false);
       e.target.value = '';
@@ -183,7 +187,11 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       router.refresh();
     } catch (err: unknown) {
       console.error('Delete service error:', err);
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to delete service');
+      let msg = 'Failed to delete service';
+      if (typeof err === 'object' && err !== null && 'message' in err) {
+        msg = String((err as { message: string }).message);
+      }
+      setErrorMessage(msg);
       setDeleting(false);
     }
   };
@@ -271,8 +279,20 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
       router.push('/admin/services');
       router.refresh();
     } catch (err: unknown) {
-      console.error('Save service error:', err);
-      setErrorMessage(err instanceof Error ? err.message : 'Failed to save service');
+      console.error('Save service error details:', err);
+      let msg = 'Failed to save service';
+      if (typeof err === 'object' && err !== null) {
+        if ('message' in err && typeof (err as { message: string }).message === 'string') {
+          msg = (err as { message: string }).message;
+        } else if ('error_description' in err && typeof (err as { error_description: string }).error_description === 'string') {
+          msg = (err as { error_description: string }).error_description;
+        } else {
+          msg = JSON.stringify(err);
+        }
+      } else if (err instanceof Error) {
+        msg = err.message;
+      }
+      setErrorMessage(msg);
     } finally {
       setLoading(false);
     }
