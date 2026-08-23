@@ -6,13 +6,13 @@ import { createClient } from '@/lib/supabase/client';
 import { Plus, Edit2, Trash2, Search, ExternalLink, Loader2 } from 'lucide-react';
 import type { Service, Category } from '@/lib/types';
 
-interface ServiceWithCategory extends Service {
+type ServiceListItem = Omit<Service, 'categories'> & {
   categories?: Pick<Category, 'name'> | null;
-}
+};
 
 export default function AdminServicesPage() {
   const supabase = createClient();
-  const [services, setServices] = useState<ServiceWithCategory[]>([]);
+  const [services, setServices] = useState<ServiceListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +27,7 @@ export default function AdminServicesPage() {
         .order('display_order', { ascending: true });
 
       if (fetchError) throw fetchError;
-      setServices((data as ServiceWithCategory[]) || []);
+      setServices((data as ServiceListItem[]) || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load services list');
     } finally {

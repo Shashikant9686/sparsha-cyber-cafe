@@ -4,11 +4,23 @@ import React, { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Edit2, Trash2, Search, ExternalLink, Loader2 } from 'lucide-react';
-import type { CounsellingEvent } from '@/lib/types';
+
+interface CounsellingEventRow {
+  id: string;
+  title: string;
+  slug: string;
+  authority_name: string;
+  academic_year: string;
+  round_name: string | null;
+  status: string;
+  official_portal_url: string | null;
+  description: string | null;
+  created_at: string;
+}
 
 export default function AdminCounsellingPage() {
   const supabase = createClient();
-  const [events, setEvents] = useState<CounsellingEvent[]>([]);
+  const [events, setEvents] = useState<CounsellingEventRow[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchQuery, setSearchQuery] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -23,7 +35,7 @@ export default function AdminCounsellingPage() {
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
-      setEvents((data as CounsellingEvent[]) || []);
+      setEvents((data as CounsellingEventRow[]) || []);
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Failed to load counselling events');
     } finally {
