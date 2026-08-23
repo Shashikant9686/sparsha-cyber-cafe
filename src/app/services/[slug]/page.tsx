@@ -1,273 +1,226 @@
-import { notFound } from 'next/navigation';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import { 
-  ArrowLeft, 
-  Clock, 
-  IndianRupee, 
-  FileText, 
-  ExternalLink, 
-  AlertTriangle,
-  MessageCircle,
-  Check
-} from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { Plus, Search, Trash2, Edit3, ExternalLink, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
-interface Props {
-  params: Promise<{ slug: string }> | { slug: string };
+interface ServiceRecord {
+  id: string;
+  name: string;
+  slug: string;
+  status: string;
+  fee: number | null;
+  service_charge: number | null;
+  submission_method: string | null;
+  categories: {
+    name: string;
+  } | null;
 }
 
-function isUUID(str: string) {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
-}
+export default function AdminServicesPage() {
+  const supabase = createClient();
 
-export default async function ServiceDetailPage({ params }: Props) {
-  const resolvedParams = await params;
-  const { slug } = resolvedParams;
-  const decodedSlug = decodeURIComponent(slug);
+  const [services, setServices] = useState<ServiceRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const supabase = await createClient();
+  useEffect(() => {
+    let isMounted = true;
 
-  // 1. Fetch canonical service with category relation
-  let { data: service, error: serviceError } = await supabase
-    .from('services')
-    .select('*, categories(name)')
-    .eq('slug', decodedSlug)
-    .maybeSingle();
+    async function loadServices() {
+      try {
+        setLoading(true);
+        setErrorMsg(null);
 
-  if (!service && isUUID(decodedSlug)) {
-    const { data: serviceById, error: idError } = await supabase
-      .from('services')
-      .select('*, categories(name)')
-      .eq('id', decodedSlug)
-      .maybeSingle();
+        const { data, error } = await supabase
+          .from('services')
+          .select('id, name, slug, status, fee, service_charge, submission_method, categories(name)')
+          .order('created_at', { ascending: false });
 
-    if (!idError && serviceById) {
-      service = serviceById;
-      serviceError = null;
+        if (error) throw error;
+        if (isMounted) {
+          setServices((data as unknown as ServiceRecord[]) || []);
+        }
+      } catch (err: unknown) {
+        console.error('Failed to fetch services:', err);
+        if (isMounted) {
+          setErrorMsg(err instanceof Error ? err.message : 'Could not fetch services list');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
     }
-  }
 
-  if (serviceError) {
-    console.error('Error loading service by slug:', serviceError);
-  }
+    loadServices();
 
-  if (!service) {
-    notFound();
-  }
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
 
-  // 2. Fetch required documents
-  const { data: docs } = await supabase
-    .from('required_documents')
-    .select('*')
-    .eq('service_id', service.id)
-    .order('display_order', { ascending: true });
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
 
-  // 3. Fetch images/posters
-  const { data: images } = await supabase
-    .from('service_images')
-    .select('*')
-    .eq('service_id', service.id)
-    .order('display_order', { ascending: true });
+    try {
+      setDeletingId(id);
+      await supabase.from('required_documents').delete().eq('service_id', id);
+      await supabase.from('service_images').delete().eq('service_id', id);
 
-  const displayName = service.name || 'Service Details';
-  const categoryName = (service.categories as { name?: string } | null)?.name;
-  const displayDocs = docs || [];
-  const displayImages = images || [];
+      const { error } = await supabase.from('services').delete().eq('id', id);
+      if (error) throw error;
 
-  const hasGovtFee = service.fee != null;
-  const hasServiceCharge = service.service_charge != null;
-  const hasPricing = hasGovtFee || hasServiceCharge;
+      setServices((prev) => prev.filter((s) => s.id !== id));
+    } catch (err: unknown) {
+      console.error('Failed to delete service:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete service');
+    } finally {
+      setDeletingId(null);
+    }
+  };
 
-  // Build WhatsApp share link
-  const docChecklistText = displayDocs.length > 0
-    ? '\n\n*Required Documents:*\n' + displayDocs.map((d: { document_name: string }, i: number) => `${i + 1}. ${d.document_name}`).join('\n')
-    : '';
-
-  const waMessage = encodeURIComponent(
-    `Hello Sparsha Cyber Cafe, I would like to apply for *${displayName}*.\nCould you please guide me on the next steps?${docChecklistText}`
+  const filtered = services.filter((s) =>
+    (s.name || '').toLowerCase().includes(searchTerm.toLowerCase()) ||
+    (s.categories?.name || '').toLowerCase().includes(searchTerm.toLowerCase())
   );
-  const waUrl = `https://wa.me/919980649686?text=${waMessage}`;
 
   return (
-    <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-4xl mx-auto space-y-6">
-        {/* Back Link */}
-        <Link
-          href="/services"
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 transition"
-        >
-          <ArrowLeft className="w-4 h-4" />
-          <span>Back to all services</span>
-        </Link>
-
-        {/* Main Header Card */}
-        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
-          <div className="flex flex-wrap items-center gap-2">
-            {categoryName && (
-              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">
-                {categoryName}
-              </span>
-            )}
-            <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full capitalize">
-              {service.submission_method || 'Online'}
-            </span>
-          </div>
-
-          <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            {displayName}
-          </h1>
-
-          {service.short_description && (
-            <p className="text-sm text-slate-600 leading-relaxed font-medium">
-              {service.short_description}
-            </p>
-          )}
-
-          {/* Conditional Pricing & Timeline Stats */}
-          {(hasPricing || service.processing_time) && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100">
-              {hasGovtFee && (
-                <div className="p-3.5 bg-slate-50 rounded-2xl">
-                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-                    <IndianRupee className="w-3.5 h-3.5" />
-                    <span>Govt Fee</span>
-                  </div>
-                  <div className="text-base font-black text-slate-900 mt-0.5">
-                    ₹{service.fee}
-                  </div>
-                </div>
-              )}
-
-              {hasServiceCharge && (
-                <div className="p-3.5 bg-slate-50 rounded-2xl">
-                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-                    <IndianRupee className="w-3.5 h-3.5" />
-                    <span>Cafe Service Fee</span>
-                  </div>
-                  <div className="text-base font-black text-blue-600 mt-0.5">
-                    ₹{service.service_charge}
-                  </div>
-                </div>
-              )}
-
-              {service.processing_time && (
-                <div className={`p-3.5 bg-slate-50 rounded-2xl ${!hasPricing ? 'col-span-2 sm:col-span-3' : 'col-span-2 sm:col-span-1'}`}>
-                  <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
-                    <Clock className="w-3.5 h-3.5" />
-                    <span>Timeline</span>
-                  </div>
-                  <div className="text-base font-black text-slate-900 mt-0.5">
-                    {service.processing_time}
-                  </div>
-                </div>
-              )}
-            </div>
-          )}
-
-          {/* Actions: WhatsApp + Portal */}
-          <div className="flex flex-col sm:flex-row gap-3 pt-2">
-            <a
-              href={waUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-xs transition"
-            >
-              <MessageCircle className="w-4 h-4" />
-              <span>Apply via WhatsApp Help</span>
-            </a>
-
-            {service.official_link && (
-              <a
-                href={service.official_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition"
-              >
-                <span>Official Portal</span>
-                <ExternalLink className="w-4 h-4" />
-              </a>
-            )}
-          </div>
+    <div className="space-y-6">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div>
+          <h1 className="text-xl font-bold text-slate-900">Services Catalog</h1>
+          <p className="text-xs text-slate-500">
+            Create, update fees, and manage required document checklists
+          </p>
         </div>
 
-        {/* Custom Disclaimer Alert */}
-        {service.custom_disclaimer && (
-          <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-900 shadow-xs">
-            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-            <div className="text-xs space-y-1">
-              <span className="font-bold">Important Notice:</span>
-              <p className="text-amber-800 leading-relaxed">
-                {service.custom_disclaimer}
-              </p>
-            </div>
-          </div>
-        )}
+        <Link
+          href="/admin/services/new"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs w-fit"
+        >
+          <Plus className="w-4 h-4" />
+          <span>Add New Service</span>
+        </Link>
+      </div>
 
-        {/* Required Documents Section */}
-        {displayDocs.length > 0 && (
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
-            <div className="flex items-center gap-2">
-              <FileText className="w-5 h-5 text-blue-600" />
-              <h2 className="text-base font-black text-slate-900">
-                Required Documents Checklist
-              </h2>
-            </div>
-            
-            <div className="divide-y divide-slate-100">
-              {displayDocs.map((doc: { id?: string; document_name: string; is_mandatory?: boolean; description?: string }, idx: number) => (
-                <div key={idx} className="py-3 flex items-start gap-3">
-                  <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
-                    <Check className="w-3.5 h-3.5" />
-                  </div>
-                  <div>
-                    <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
-                      <span>{doc.document_name}</span>
-                      {doc.is_mandatory && (
-                        <span className="text-[10px] px-2 py-0.5 bg-rose-50 text-rose-600 font-semibold rounded-md">
-                          Mandatory
-                        </span>
-                      )}
-                    </div>
-                    {doc.description && (
-                      <p className="text-[11px] text-slate-500 mt-0.5 font-medium">{doc.description}</p>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
+      {errorMsg && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
 
-        {/* Full Details & Instructions */}
-        {service.full_description && (
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-3 shadow-xs">
-            <h2 className="text-base font-black text-slate-900">
-              Application Details & Eligibility
-            </h2>
-            <div className="text-xs text-slate-600 whitespace-pre-line leading-relaxed font-medium">
-              {service.full_description}
-            </div>
-          </div>
-        )}
+      {/* Search Filter */}
+      <div className="relative max-w-sm">
+        <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
+        <input
+          type="text"
+          placeholder="Search by name or category..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden transition"
+        />
+      </div>
 
-        {/* Uploaded Posters */}
-        {displayImages.length > 0 && (
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
-            <h2 className="text-base font-black text-slate-900">
-              Official Posters & Guidelines
-            </h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              {displayImages.map((img: { id?: string; image_url: string; alt_text?: string }, idx: number) => (
-                <div key={idx} className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
-                  <img
-                    src={img.image_url}
-                    alt={img.alt_text || displayName}
-                    className="w-full h-auto object-cover"
-                  />
-                </div>
-              ))}
-            </div>
+      {/* Table Card */}
+      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xs">
+        {loading ? (
+          <div className="p-12 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            <span>Loading services catalog...</span>
+          </div>
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center text-xs text-slate-400 italic">
+            No matching services found.
+          </div>
+        ) : (
+          <div className="overflow-x-auto">
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3.5 px-4">Service Name</th>
+                  <th className="py-3.5 px-4">Category</th>
+                  <th className="py-3.5 px-4">Pricing</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {filtered.map((item) => {
+                  const isPublic = (item.status || '').toLowerCase() === 'active';
+                  return (
+                    <tr key={item.id} className="hover:bg-slate-50/70 transition">
+                      <td className="py-3.5 px-4 font-bold text-slate-900">
+                        <div className="flex items-center gap-2">
+                          <span>{item.name}</span>
+                          <Link
+                            href={`/services/${item.slug}`}
+                            target="_blank"
+                            className="text-slate-400 hover:text-blue-600 transition"
+                            title="View public page"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </Link>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 font-medium text-slate-600">
+                        {item.categories?.name || '—'}
+                      </td>
+                      <td className="py-3.5 px-4 font-medium">
+                        {item.fee != null || item.service_charge != null ? (
+                          <span>
+                            Govt: ₹{item.fee ?? 0} | Cafe: ₹{item.service_charge ?? 0}
+                          </span>
+                        ) : (
+                          <span className="text-slate-400 italic">Not set</span>
+                        )}
+                      </td>
+                      <td className="py-3.5 px-4">
+                        <div className="flex items-center gap-1.5">
+                          <span
+                            className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${
+                              isPublic
+                                ? 'bg-emerald-50 text-emerald-700'
+                                : 'bg-amber-50 text-amber-700'
+                            }`}
+                          >
+                            {isPublic ? <Eye className="w-3 h-3 text-emerald-600" /> : <EyeOff className="w-3 h-3 text-slate-400" />}
+                            <span>{item.status || 'draft'}</span>
+                          </span>
+                        </div>
+                      </td>
+                      <td className="py-3.5 px-4 text-right space-x-2">
+                        <Link
+                          href={`/admin/services/${item.id}`}
+                          className="inline-flex p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                          title="Edit Service"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                        </Link>
+                        <button
+                          type="button"
+                          onClick={() => handleDelete(item.id, item.name)}
+                          disabled={deletingId === item.id}
+                          className="inline-flex p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
+                          title="Delete Service"
+                        >
+                          {deletingId === item.id ? (
+                            <Loader2 className="w-4 h-4 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4" />
+                          )}
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         )}
       </div>
