@@ -18,21 +18,25 @@ import type { Category, RequiredDocument, ServiceImage } from '@/lib/types';
 interface ExtendedServiceData {
   id?: string;
   name?: string;
+  title?: string;
   slug?: string;
   category_id?: string | null;
+  category?: string | null;
   short_description?: string | null;
   full_description?: string | null;
+  description?: string | null;
   fee?: number | string | null;
+  official_fee?: number | string | null;
   service_charge?: number | string | null;
   status?: string;
   featured?: boolean;
+  is_featured?: boolean;
   submission_method?: string;
   official_link?: string | null;
-  official_portal_url?: string | null;
+  custom_disclaimer?: string | null;
   disclaimer?: string | null;
   start_date?: string | null;
   last_date?: string | null;
-  application_deadline?: string | null;
   required_documents?: RequiredDocument[];
   service_images?: ServiceImage[];
 }
@@ -46,31 +50,42 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
   const supabase = createClient();
   const isEditing = Boolean(initialData?.id);
 
-  const initialOfficialLink = initialData?.official_link || initialData?.official_portal_url || '';
-  const initialLastDate = initialData?.last_date || initialData?.application_deadline || '';
-
-  // Form Fields
-  const [name, setName] = useState(initialData?.name || '');
+  // Form Fields mapped to database columns
+  const [name, setName] = useState(initialData?.name || initialData?.title || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
-  const [shortDescription, setShortDescription] = useState(initialData?.short_description || '');
-  const [fullDescription, setFullDescription] = useState(initialData?.full_description || '');
-  const [fee, setFee] = useState<string>(initialData?.fee != null ? String(initialData.fee) : '');
+  const [shortDescription, setShortDescription] = useState(
+    initialData?.short_description || initialData?.description || ''
+  );
+  const [fullDescription, setFullDescription] = useState(
+    initialData?.full_description || initialData?.description || ''
+  );
+  const [fee, setFee] = useState<string>(
+    initialData?.fee != null 
+      ? String(initialData.fee) 
+      : initialData?.official_fee != null 
+      ? String(initialData.official_fee) 
+      : ''
+  );
   const [serviceCharge, setServiceCharge] = useState<string>(
     initialData?.service_charge != null ? String(initialData.service_charge) : ''
   );
   const [status, setStatus] = useState<string>(initialData?.status || 'Active');
-  const [featured, setFeatured] = useState<boolean>(initialData?.featured || false);
+  const [featured, setFeatured] = useState<boolean>(
+    initialData?.featured ?? initialData?.is_featured ?? false
+  );
   const [submissionMethod, setSubmissionMethod] = useState<string>(
     initialData?.submission_method || 'Online'
   );
-  const [officialLink, setOfficialLink] = useState(initialOfficialLink);
-  const [disclaimer, setDisclaimer] = useState(initialData?.disclaimer || '');
+  const [officialLink, setOfficialLink] = useState(initialData?.official_link || '');
+  const [customDisclaimer, setCustomDisclaimer] = useState(
+    initialData?.custom_disclaimer || initialData?.disclaimer || ''
+  );
   const [startDate, setStartDate] = useState(
     initialData?.start_date ? initialData.start_date.split('T')[0] : ''
   );
   const [lastDate, setLastDate] = useState(
-    initialLastDate ? initialLastDate.split('T')[0] : ''
+    initialData?.last_date ? initialData.last_date.split('T')[0] : ''
   );
 
   // Documents & Images Sub-items
@@ -172,7 +187,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
 
   const handleDeleteService = async () => {
     if (!initialData?.id) return;
-    if (!confirm(`Are you sure you want to delete "${initialData.name}"?`)) return;
+    if (!confirm(`Are you sure you want to delete "${name || initialData.name}"?`)) return;
 
     setDeleting(true);
     setErrorMessage(null);
@@ -208,19 +223,29 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
     setErrorMessage(null);
 
     try {
+      const selectedCat = categories.find((c) => c.id === categoryId);
+      const parsedFee = fee === '' ? null : parseFloat(fee);
+      const parsedServiceCharge = serviceCharge === '' ? null : parseFloat(serviceCharge);
+
+      // Matches exact columns in public.services
       const servicePayload = {
         name: name.trim(),
+        title: name.trim(),
         slug: slug.trim(),
         category_id: categoryId || null,
+        category: selectedCat?.name || null,
         short_description: shortDescription.trim() || null,
+        description: shortDescription.trim() || fullDescription.trim() || null,
         full_description: fullDescription.trim() || null,
-        fee: fee === '' ? null : parseFloat(fee),
-        service_charge: serviceCharge === '' ? null : parseFloat(serviceCharge),
+        fee: parsedFee,
+        official_fee: parsedFee,
+        service_charge: parsedServiceCharge,
         status,
         featured,
+        is_featured: featured,
         submission_method: submissionMethod,
         official_link: officialLink.trim() || null,
-        disclaimer: disclaimer.trim() || null,
+        custom_disclaimer: customDisclaimer.trim() || null,
         start_date: startDate || null,
         last_date: lastDate || null,
       };
@@ -302,7 +327,6 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
 
   return (
     <form onSubmit={handleSubmit} className="space-y-8 max-w-4xl pb-16">
-      {/* Top Header & Navigation */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div className="flex items-center gap-3">
           <Link
@@ -313,13 +337,12 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
           </Link>
           <div>
             <h1 className="text-xl font-black text-slate-900">
-              {isEditing ? `Edit: ${initialData?.name}` : 'Create New Service'}
+              {isEditing ? `Edit: ${name || initialData?.name}` : 'Create New Service'}
             </h1>
             <p className="text-xs text-slate-500">Configure catalog details, pricing, documents, and banners.</p>
           </div>
         </div>
 
-        {/* Action Buttons Top */}
         <div className="flex items-center gap-3">
           {isEditing && (
             <button
@@ -344,7 +367,6 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       </div>
 
-      {/* Error Banner */}
       {errorMessage && (
         <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-start gap-2.5 shadow-xs">
           <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
@@ -355,7 +377,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       )}
 
-      {/* Basic Information */}
+      {/* General Info */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         <h2 className="text-sm font-black text-slate-900 uppercase tracking-wide">General Information</h2>
 
@@ -533,15 +555,15 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
           <label className="text-xs font-bold text-slate-700">Custom Disclaimer / Caution Notice</label>
           <textarea
             rows={2}
-            value={disclaimer}
-            onChange={(e) => setDisclaimer(e.target.value)}
+            value={customDisclaimer}
+            onChange={(e) => setCustomDisclaimer(e.target.value)}
             placeholder="e.g. Ensure Aadhaar is linked to active mobile number before applying."
             className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:ring-2 focus:ring-blue-500 focus:outline-hidden"
           />
         </div>
       </div>
 
-      {/* Required Documents Checklist */}
+      {/* Documents */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
@@ -614,7 +636,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       </div>
 
-      {/* Service Images & Posters */}
+      {/* Posters & Images */}
       <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
@@ -666,7 +688,7 @@ export default function ServiceForm({ initialData }: ServiceFormProps) {
         </div>
       </div>
 
-      {/* Bottom Save & Delete Actions */}
+      {/* Actions Bottom */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 pt-4 border-t border-slate-200">
         {isEditing ? (
           <button
