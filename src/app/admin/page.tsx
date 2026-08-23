@@ -10,8 +10,7 @@ import {
   Plus, 
   ArrowRight, 
   ExternalLink,
-  Edit,
-  Clock
+  Edit
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -20,7 +19,6 @@ export const revalidate = 0;
 export default async function AdminDashboardPage() {
   const supabase = await createClient();
 
-  // Fetch live count and recently added services
   const [{ count: servicesCount, data: recentServices }, { count: categoriesCount }, { count: admissionsCount }, { count: announcementsCount }] = await Promise.all([
     supabase.from('services').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(5),
     supabase.from('categories').select('*', { count: 'exact', head: true }),
@@ -110,9 +108,8 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* Two Column Grid: Quick Actions & Recently Configured Services */}
+      {/* Two Column Grid: Operations & Services */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Quick Operations */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
           <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Quick Operations</h2>
           <div className="space-y-2.5">
@@ -158,7 +155,6 @@ export default async function AdminDashboardPage() {
           </div>
         </div>
 
-        {/* Recently Configured Services Box */}
         <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
           <div className="flex items-center justify-between">
             <div>
@@ -206,17 +202,17 @@ export default async function AdminDashboardPage() {
         </div>
       </div>
 
-      {/* QR Code Counter Standee Section */}
+      {/* Private Admin Counter Standee Generator */}
       <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
         <div className="space-y-2 text-center md:text-left">
           <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-full">
-            Counter Marketing & Offline Reach
+            Operator Counter Utility
           </span>
           <h2 className="text-lg font-black text-slate-900">
-            Sparsha Seva Kendra Counter QR Standee
+            Sparsha Seva Kendra Desk Standee Generator
           </h2>
-          <p className="text-xs text-slate-500 max-w-lg">
-            Download and print this QR code to place on your cyber cafe front desk. Customers can scan to immediately browse document checklists, service fee guides, and start WhatsApp pre-verification.
+          <p className="text-xs text-slate-500 max-w-lg leading-relaxed">
+            Download the high-resolution QR image below to print and laminate for your cafe counter. Customers scanning this QR will instantly load your public seva catalog on their mobile phones.
           </p>
         </div>
 
