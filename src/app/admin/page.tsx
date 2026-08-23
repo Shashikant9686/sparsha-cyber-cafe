@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import WebsiteQR from '@/components/WebsiteQR';
 import { 
   FileText, 
   FolderKanban, 
@@ -202,6 +203,25 @@ export default async function AdminDashboardPage() {
               })}
             </div>
           )}
+        </div>
+      </div>
+
+      {/* QR Code Counter Standee Section */}
+      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
+        <div className="space-y-2 text-center md:text-left">
+          <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-full">
+            Counter Marketing & Offline Reach
+          </span>
+          <h2 className="text-lg font-black text-slate-900">
+            Sparsha Seva Kendra Counter QR Standee
+          </h2>
+          <p className="text-xs text-slate-500 max-w-lg">
+            Download and print this QR code to place on your cyber cafe front desk. Customers can scan to immediately browse document checklists, service fee guides, and start WhatsApp pre-verification.
+          </p>
+        </div>
+
+        <div className="shrink-0">
+          <WebsiteQR />
         </div>
       </div>
     </div>
