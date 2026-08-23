@@ -3,21 +3,21 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Search, Trash2, Edit3, Loader2, AlertCircle, Calendar } from 'lucide-react';
+import { Plus, Search, Trash2, Edit3, Loader2, AlertCircle, ExternalLink } from 'lucide-react';
 
-interface CounsellingEvent {
+interface CounsellingEventItem {
   id: string;
   title: string;
-  category: string;
-  start_date: string | null;
-  end_date: string | null;
+  exam_type: string;
+  academic_year: string;
+  official_portal_url: string | null;
   status: string;
 }
 
 export default function AdminCounsellingPage() {
   const supabase = createClient();
 
-  const [events, setEvents] = useState<CounsellingEvent[]>([]);
+  const [events, setEvents] = useState<CounsellingEventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
   const [deletingId, setDeletingId] = useState<string | null>(null);
@@ -33,12 +33,12 @@ export default function AdminCounsellingPage() {
 
         const { data, error } = await supabase
           .from('counselling_events')
-          .select('id, title, category, start_date, end_date, status')
+          .select('id, title, exam_type, academic_year, official_portal_url, status')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
         if (isMounted) {
-          setEvents((data as CounsellingEvent[]) || []);
+          setEvents((data as CounsellingEventItem[]) || []);
         }
       } catch (err: unknown) {
         console.error('Failed to fetch counselling events:', err);
@@ -64,6 +64,9 @@ export default function AdminCounsellingPage() {
 
     try {
       setDeletingId(id);
+
+      await supabase.from('event_dates').delete().eq('counselling_event_id', id);
+
       const { error } = await supabase.from('counselling_events').delete().eq('id', id);
       if (error) throw error;
 
@@ -78,7 +81,8 @@ export default function AdminCounsellingPage() {
 
   const filtered = events.filter((e) =>
     e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.category.toLowerCase().includes(searchTerm.toLowerCase())
+    e.exam_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.academic_year.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
@@ -113,7 +117,7 @@ export default function AdminCounsellingPage() {
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
-          placeholder="Search by title or category (KCET, NEET)..."
+          placeholder="Search by title, exam type (KCET, NEET), or year..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden transition"
@@ -137,8 +141,8 @@ export default function AdminCounsellingPage() {
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
                   <th className="py-3.5 px-4">Event Title</th>
-                  <th className="py-3.5 px-4">Category</th>
-                  <th className="py-3.5 px-4">Schedule</th>
+                  <th className="py-3.5 px-4">Exam Type</th>
+                  <th className="py-3.5 px-4">Academic Year</th>
                   <th className="py-3.5 px-4">Status</th>
                   <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
@@ -146,26 +150,39 @@ export default function AdminCounsellingPage() {
               <tbody className="divide-y divide-slate-100 text-slate-700">
                 {filtered.map((event) => (
                   <tr key={event.id} className="hover:bg-slate-50/70 transition">
-                    <td className="py-3.5 px-4 font-bold text-slate-900">{event.title}</td>
+                    <td className="py-3.5 px-4 font-bold text-slate-900">
+                      <div className="flex items-center gap-2">
+                        <span>{event.title}</span>
+                        {event.official_portal_url && (
+                          <a
+                            href={event.official_portal_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-slate-400 hover:text-blue-600 transition"
+                            title="Official Portal"
+                          >
+                            <ExternalLink className="w-3.5 h-3.5" />
+                          </a>
+                        )}
+                      </div>
+                    </td>
                     <td className="py-3.5 px-4">
                       <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg font-bold text-[10px] uppercase tracking-wider">
-                        {event.category}
+                        {event.exam_type}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 font-medium text-slate-600">
-                      <div className="flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
-                        <span>
-                          {event.start_date ? event.start_date.substring(0, 10) : 'TBD'} &rarr;{' '}
-                          {event.end_date ? event.end_date.substring(0, 10) : 'Open'}
-                        </span>
-                      </div>
+                      {event.academic_year || '—'}
                     </td>
                     <td className="py-3.5 px-4">
                       <span
                         className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${
-                          event.status === 'active'
+                          event.status === 'Active'
                             ? 'bg-emerald-50 text-emerald-700'
+                            : event.status === 'Upcoming'
+                            ? 'bg-blue-50 text-blue-700'
+                            : event.status === 'Deadline Approaching'
+                            ? 'bg-rose-50 text-rose-700'
                             : 'bg-slate-100 text-slate-600'
                         }`}
                       >
@@ -176,6 +193,7 @@ export default function AdminCounsellingPage() {
                       <Link
                         href={`/admin/counselling/${event.id}`}
                         className="inline-flex p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                        title="Edit event"
                       >
                         <Edit3 className="w-4 h-4" />
                       </Link>
@@ -184,6 +202,7 @@ export default function AdminCounsellingPage() {
                         onClick={() => handleDelete(event.id, event.title)}
                         disabled={deletingId === event.id}
                         className="inline-flex p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
+                        title="Delete event"
                       >
                         {deletingId === event.id ? (
                           <Loader2 className="w-4 h-4 animate-spin" />
