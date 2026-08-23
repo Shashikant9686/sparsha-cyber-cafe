@@ -53,7 +53,7 @@ export interface ServiceFormData {
   submission_method?: string | null;
   fee?: number | null;
   service_charge?: number | null;
-  estimated_days?: string | null;
+  processing_time?: string | null;
   prerequisites?: string | null;
   steps?: string | null;
   faq?: FAQItem[] | null;
@@ -81,7 +81,7 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
   const [submissionMethod, setSubmissionMethod] = useState(initialData?.submission_method || 'Online Application / Seva Sindhu');
-  const [estimatedDays, setEstimatedDays] = useState(initialData?.estimated_days || '7 to 15 working days');
+  const [estimatedDays, setEstimatedDays] = useState(initialData?.processing_time || '7 to 15 working days');
   const [status, setStatus] = useState(initialData?.status?.toLowerCase() || 'active');
 
   // 2. Pricing State
@@ -237,7 +237,7 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
         submission_method: submissionMethod.trim() || null,
         fee: fee === '' ? null : Number(fee),
         service_charge: serviceCharge === '' ? null : Number(serviceCharge),
-        estimated_days: estimatedDays.trim() || null,
+        processing_time: estimatedDays.trim() || null,
         prerequisites: prerequisites.trim() || null,
         steps: steps.trim() || null,
         faq: cleanFaqs.length > 0 ? cleanFaqs : null,
@@ -278,7 +278,7 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
             service_id: activeServiceId,
             document_name: d.document_name.trim(),
             is_mandatory: Boolean(d.is_mandatory),
-            notes: d.notes?.trim() || null,
+            description: d.notes?.trim() || null,
             display_order: index + 1
           }));
 
@@ -301,7 +301,8 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
           .map((img, index) => ({
             service_id: activeServiceId,
             image_url: img.image_url.trim(),
-            caption: img.caption?.trim() || null,
+            alt_text: img.caption?.trim() || null,
+            image_type: 'service',
             display_order: index + 1
           }));
 

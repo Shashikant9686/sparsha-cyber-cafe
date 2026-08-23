@@ -47,5 +47,5 @@ export default async function EditServicePage({ params }: Props) {
     service_images: images || [],
   };
 
-  return <ServiceForm initialData={initialData} />;
+    return <ServiceForm initialData={initialData} serviceId={id} />;
 }

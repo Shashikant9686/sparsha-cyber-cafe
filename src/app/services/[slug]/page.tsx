@@ -1,6 +1,7 @@
 import { Metadata } from 'next';
 import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createStaticClient } from '@/lib/supabase/static';
 import ServiceDetailClient from '@/components/services/ServiceDetailClient';
 
 export const dynamic = 'force-dynamic';
@@ -19,7 +20,7 @@ interface PageProps {
  */
 export async function generateStaticParams() {
   try {
-    const supabase = await createClient();
+    const supabase = createStaticClient();
     const { data: services, error } = await supabase
       .from('services')
       .select('slug')
