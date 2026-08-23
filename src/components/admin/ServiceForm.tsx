@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import ImageUploader from '@/components/admin/ImageUploader';
+import ImageUploader, { UploadedImage } from '@/components/admin/ImageUploader';
 import { Loader2, Plus, Trash2, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -38,15 +38,16 @@ interface ServiceFormProps {
     featured: boolean;
     display_order: number;
     disclaimer: string | null;
-    image_url?: string | null;
   };
   initialDocs?: RequiredDocItem[];
+  initialImages?: UploadedImage[];
   isEditing?: boolean;
 }
 
 export default function ServiceForm({
   initialData,
   initialDocs = [],
+  initialImages = [],
   isEditing = false,
 }: ServiceFormProps) {
   const router = useRouter();
@@ -57,7 +58,7 @@ export default function ServiceForm({
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Form State matching the database schema
+  // Form State
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
   const [name, setName] = useState(initialData?.name || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
@@ -73,16 +74,18 @@ export default function ServiceForm({
   const [featured, setFeatured] = useState(initialData?.featured ?? false);
   const [displayOrder, setDisplayOrder] = useState<number>(initialData?.display_order ?? 0);
   const [disclaimer, setDisclaimer] = useState(initialData?.disclaimer || '');
-  const [imageUrl, setImageUrl] = useState(initialData?.image_url || '');
 
-  // Documents state for the child table
+  // Documents state
   const [documents, setDocuments] = useState<RequiredDocItem[]>(
     initialDocs.length > 0
       ? initialDocs
       : [{ document_name: '', description: '', is_mandatory: true, display_order: 1 }]
   );
 
-  // Fetch real categories from Supabase
+  // Images state
+  const [images, setImages] = useState<UploadedImage[]>(initialImages);
+
+  // Fetch categories
   useEffect(() => {
     async function loadCategories() {
       try {
@@ -105,7 +108,6 @@ export default function ServiceForm({
     loadCategories();
   }, [supabase]);
 
-  // Auto-generate slug from name if not editing
   const handleNameChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const val = e.target.value;
     setName(val);
@@ -151,8 +153,10 @@ export default function ServiceForm({
       return;
     }
 
+    let targetServiceId = initialData?.id;
+
+    // 1. Save or update parent service record
     try {
-      // 1. Strict schema payload for `services`
       const servicePayload = {
         category_id: categoryId || null,
         name: name.trim(),
@@ -171,8 +175,6 @@ export default function ServiceForm({
         disclaimer: disclaimer.trim() || null,
       };
 
-      let targetServiceId = initialData?.id;
-
       if (isEditing && targetServiceId) {
         const { error: updateError } = await supabase
           .from('services')
@@ -190,30 +192,16 @@ export default function ServiceForm({
         if (insertError) throw insertError;
         targetServiceId = inserted.id;
       }
+    } catch (err: any) {
+      setError(err.message || 'Failed to save core service details.');
+      setSaving(false);
+      return;
+    }
 
-      // 2. Persist service poster image if present in service_images child table
-      if (imageUrl && targetServiceId) {
-        await supabase
-          .from('service_images')
-          .delete()
-          .eq('service_id', targetServiceId);
-
-        await supabase.from('service_images').insert([
-          {
-            service_id: targetServiceId,
-            image_url: imageUrl,
-            caption: name.trim(),
-            display_order: 1,
-          },
-        ]);
-      }
-
-      // 3. Synchronize Required Documents table
+    // 2. Synchronize required documents
+    try {
       if (targetServiceId) {
-        await supabase
-          .from('required_documents')
-          .delete()
-          .eq('service_id', targetServiceId);
+        await supabase.from('required_documents').delete().eq('service_id', targetServiceId);
 
         const validDocs = documents
           .filter((d) => d.document_name.trim().length > 0)
@@ -233,14 +221,42 @@ export default function ServiceForm({
           if (docError) throw docError;
         }
       }
-
-      router.push('/admin/services');
-      router.refresh();
     } catch (err: any) {
-      setError(err.message || 'Failed to save service.');
-    } finally {
+      setError(`Service saved, but failed to update documents: ${err.message}`);
       setSaving(false);
+      return;
     }
+
+    // 3. Synchronize service images
+    try {
+      if (targetServiceId) {
+        await supabase.from('service_images').delete().eq('service_id', targetServiceId);
+
+        const validImages = (images || [])
+          .filter((img) => (img.image_url || '').trim().length > 0)
+          .map((img, index) => ({
+            service_id: targetServiceId,
+            image_url: img.image_url,
+            caption: img.caption?.trim() || name.trim(),
+            display_order: index + 1,
+          }));
+
+        if (validImages.length > 0) {
+          const { error: imgError } = await supabase
+            .from('service_images')
+            .insert(validImages);
+
+          if (imgError) throw imgError;
+        }
+      }
+    } catch (err: any) {
+      setError(`Service saved, but failed to update images: ${err.message}`);
+      setSaving(false);
+      return;
+    }
+
+    router.push('/admin/services');
+    router.refresh();
   };
 
   return (
@@ -277,7 +293,7 @@ export default function ServiceForm({
         </div>
       )}
 
-      {/* Basic Metadata */}
+      {/* General Information */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
         <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">General Information</h2>
 
@@ -359,7 +375,7 @@ export default function ServiceForm({
         </div>
       </div>
 
-      {/* Fees, Timeline & Links */}
+      {/* Fees & Schedule */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
         <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Fees & Schedule</h2>
 
@@ -458,7 +474,7 @@ export default function ServiceForm({
         </div>
       </div>
 
-      {/* Required Document Checklist Table Sync */}
+      {/* Document Checklist Builder */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
         <div className="flex items-center justify-between">
           <div>
@@ -466,7 +482,7 @@ export default function ServiceForm({
               Required Documents Checklist
             </h2>
             <p className="text-xs text-slate-500">
-              Students and citizens will see these exact documents for WhatsApp verification.
+              Students and citizens will see these exact documents for verification.
             </p>
           </div>
           <button
@@ -512,17 +528,17 @@ export default function ServiceForm({
         </div>
       </div>
 
-      {/* Poster Upload */}
+      {/* Service Posters & Images */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4 shadow-xs">
-        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Service Poster / Banner</h2>
+        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Service Posters & Images</h2>
         <ImageUploader
+          images={images}
+          onChange={setImages}
           bucketName="service-images"
-          currentImageUrl={imageUrl}
-          onUploadComplete={(url) => setImageUrl(url)}
         />
       </div>
 
-      {/* Disclaimer / Notes */}
+      {/* Service Disclaimer */}
       <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4 shadow-xs">
         <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Service Disclaimer</h2>
         <textarea
