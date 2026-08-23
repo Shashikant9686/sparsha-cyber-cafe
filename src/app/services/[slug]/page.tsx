@@ -6,7 +6,6 @@ import {
   Clock, 
   IndianRupee, 
   FileText, 
-  CheckCircle2, 
   ExternalLink, 
   AlertTriangle,
   MessageCircle,
@@ -17,6 +16,11 @@ interface Props {
   params: Promise<{ slug: string }> | { slug: string };
 }
 
+// Helper to check for valid UUID format
+function isUUID(str: string) {
+  return /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(str);
+}
+
 export default async function ServiceDetailPage({ params }: Props) {
   const resolvedParams = await params;
   const { slug } = resolvedParams;
@@ -24,15 +28,34 @@ export default async function ServiceDetailPage({ params }: Props) {
 
   const supabase = await createClient();
 
-  // 1. Fetch base service by slug or id
-  const { data: service, error: serviceError } = await supabase
+  // 1. Fetch service by slug first
+  let { data: service, error: serviceError } = await supabase
     .from('services')
     .select('*')
-    .or(`slug.eq.${decodedSlug},id.eq.${decodedSlug}`)
+    .eq('slug', decodedSlug)
     .maybeSingle();
 
+  // If not found by slug and param is a valid UUID, search by ID
+  if (!service && isUUID(decodedSlug)) {
+    const { data: serviceById, error: idError } = await supabase
+      .from('services')
+      .select('*')
+      .eq('id', decodedSlug)
+      .maybeSingle();
+
+    if (!idError && serviceById) {
+      service = serviceById;
+      serviceError = null;
+    }
+  }
+
   if (serviceError) {
-    console.error('Error loading service by slug:', serviceError);
+    console.error('Error loading service by slug:', {
+      message: serviceError.message,
+      details: serviceError.details,
+      hint: serviceError.hint,
+      code: serviceError.code,
+    });
   }
 
   if (!service) {
@@ -224,7 +247,7 @@ export default async function ServiceDetailPage({ params }: Props) {
           </div>
         )}
 
-        {/* Uploaded Flyers & Posters */}
+        {/* Uploaded Posters */}
         {displayImages.length > 0 && (
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
             <h2 className="text-base font-black text-slate-900">
