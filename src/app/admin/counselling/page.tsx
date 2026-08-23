@@ -1,179 +1,196 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Edit2, Trash2, Search, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Trash2, Edit3, Loader2, AlertCircle, Calendar } from 'lucide-react';
 
-interface CounsellingEventRow {
+interface CounsellingEvent {
   id: string;
   title: string;
-  slug: string;
-  authority_name: string;
-  academic_year: string;
-  round_name: string | null;
+  category: string;
+  start_date: string | null;
+  end_date: string | null;
   status: string;
-  official_portal_url: string | null;
-  description: string | null;
-  created_at: string;
 }
 
 export default function AdminCounsellingPage() {
   const supabase = createClient();
-  const [events, setEvents] = useState<CounsellingEventRow[]>([]);
+
+  const [events, setEvents] = useState<CounsellingEvent[]>([]);
   const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const fetchEvents = useCallback(async () => {
-    try {
-      setLoading(true);
-      setFetchError(null);
-      const { data, error: err } = await supabase
-        .from('counselling_events')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (err) throw err;
-      setEvents((data as CounsellingEventRow[]) || []);
-    } catch (err: unknown) {
-      console.error('Error fetching counselling events:', err);
-      setFetchError(err instanceof Error ? err.message : 'Failed to load counselling events');
-    } finally {
-      setLoading(false);
-    }
-  }, [supabase]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchEvents();
-  }, [fetchEvents]);
+    let isMounted = true;
+
+    async function loadEvents() {
+      try {
+        setLoading(true);
+        setErrorMsg(null);
+
+        const { data, error } = await supabase
+          .from('counselling_events')
+          .select('id, title, category, start_date, end_date, status')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (isMounted) {
+          setEvents((data as CounsellingEvent[]) || []);
+        }
+      } catch (err: unknown) {
+        console.error('Failed to fetch counselling events:', err);
+        if (isMounted) {
+          setErrorMsg(err instanceof Error ? err.message : 'Could not fetch counselling events');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadEvents();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
 
   const handleDelete = async (id: string, title: string) => {
-    if (!confirm(`Are you sure you want to delete "${title}"?`)) return;
+    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
 
     try {
-      const { error: delError } = await supabase
-        .from('counselling_events')
-        .delete()
-        .eq('id', id);
+      setDeletingId(id);
+      const { error } = await supabase.from('counselling_events').delete().eq('id', id);
+      if (error) throw error;
 
-      if (delError) throw delError;
       setEvents((prev) => prev.filter((e) => e.id !== id));
     } catch (err: unknown) {
-      console.error('Error deleting event:', err);
-      alert(err instanceof Error ? err.message : 'Failed to delete event');
+      console.error('Failed to delete counselling event:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete counselling event');
+    } finally {
+      setDeletingId(null);
     }
   };
 
-  const filteredEvents = events.filter((e) =>
-    e.title.toLowerCase().includes(searchQuery.toLowerCase()) ||
-    e.authority_name.toLowerCase().includes(searchQuery.toLowerCase())
+  const filtered = events.filter((e) =>
+    e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.category.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900">Counselling & Option Entry</h1>
-          <p className="text-xs text-slate-500">Manage KEA, KCET, NEET, and admission schedules.</p>
+          <h1 className="text-xl font-bold text-slate-900">Counselling & Admissions</h1>
+          <p className="text-xs text-slate-500">
+            Manage KCET, NEET, and DCET admission schedules and intake alerts
+          </p>
         </div>
+
         <Link
           href="/admin/counselling/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs w-fit"
         >
           <Plus className="w-4 h-4" />
-          <span>New Counselling Event</span>
+          <span>Add New Event</span>
         </Link>
       </div>
 
-      {fetchError && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-start gap-2.5">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-bold">Failed to load counselling events: </span>
-            {fetchError}
-          </div>
+      {errorMsg && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
-      <div className="relative">
+      {/* Filter Bar */}
+      <div className="relative max-w-sm">
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
-          placeholder="Filter by title or authority..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          placeholder="Search by title or category (KCET, NEET)..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden transition"
         />
       </div>
 
+      {/* Table Card */}
       <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xs">
         {loading ? (
-          <div className="p-12 flex flex-col items-center justify-center text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin mb-2" />
-            <span className="text-xs">Loading counselling events...</span>
+          <div className="p-12 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            <span>Loading counselling records...</span>
           </div>
-        ) : fetchError ? (
-          <div className="p-12 text-center text-rose-600 text-xs">
-            An error occurred while loading events.
-          </div>
-        ) : filteredEvents.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 text-xs">
-            {searchQuery ? 'No counselling events match your search.' : 'No counselling events found.'}
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center text-xs text-slate-400 italic">
+            No counselling events found.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-                <tr>
-                  <th className="py-3 px-4">Event Title</th>
-                  <th className="py-3 px-4">Authority</th>
-                  <th className="py-3 px-4">Academic Year</th>
-                  <th className="py-3 px-4">Round</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3.5 px-4">Event Title</th>
+                  <th className="py-3.5 px-4">Category</th>
+                  <th className="py-3.5 px-4">Schedule</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredEvents.map((evt) => (
-                  <tr key={evt.id} className="hover:bg-slate-50/50">
-                    <td className="py-3.5 px-4 font-bold text-slate-900">{evt.title}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{evt.authority_name}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{evt.academic_year}</td>
-                    <td className="py-3.5 px-4 text-slate-600">{evt.round_name || '—'}</td>
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {filtered.map((event) => (
+                  <tr key={event.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3.5 px-4 font-bold text-slate-900">{event.title}</td>
                     <td className="py-3.5 px-4">
-                      <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                        evt.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
-                      }`}>
-                        {evt.status}
+                      <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg font-bold text-[10px] uppercase tracking-wider">
+                        {event.category}
                       </span>
                     </td>
-                    <td className="py-3.5 px-4 text-right">
-                      <div className="inline-flex items-center gap-2">
-                        <Link
-                          href={`/counselling/${evt.slug}`}
-                          target="_blank"
-                          className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
-                          title="View Live"
-                        >
-                          <ExternalLink className="w-3.5 h-3.5" />
-                        </Link>
-                        <Link
-                          href={`/admin/counselling/${evt.id}`}
-                          className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                          title="Edit"
-                        >
-                          <Edit2 className="w-3.5 h-3.5" />
-                        </Link>
-                        <button
-                          type="button"
-                          onClick={() => handleDelete(evt.id, evt.title)}
-                          className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition"
-                          title="Delete"
-                        >
-                          <Trash2 className="w-3.5 h-3.5" />
-                        </button>
+                    <td className="py-3.5 px-4 font-medium text-slate-600">
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-slate-400" />
+                        <span>
+                          {event.start_date ? event.start_date.substring(0, 10) : 'TBD'} &rarr;{' '}
+                          {event.end_date ? event.end_date.substring(0, 10) : 'Open'}
+                        </span>
                       </div>
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${
+                          event.status === 'active'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {event.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right space-x-2">
+                      <Link
+                        href={`/admin/counselling/${event.id}`}
+                        className="inline-flex p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(event.id, event.title)}
+                        disabled={deletingId === event.id}
+                        className="inline-flex p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
+                      >
+                        {deletingId === event.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
                     </td>
                   </tr>
                 ))}

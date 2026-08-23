@@ -1,301 +1,326 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Megaphone, Plus, Trash2, Link as LinkIcon, Loader2, RefreshCw } from 'lucide-react';
 import { createClient } from '@/lib/supabase/client';
+import { Plus, Trash2, Edit3, Loader2, AlertCircle, Bell, ExternalLink } from 'lucide-react';
 
-interface AnnouncementItem {
+interface Announcement {
   id: string;
   title: string;
-  content: string;
-  type: string;
-  link_url: string;
+  message: string;
+  link_url?: string | null;
   is_active: boolean;
-  created_at?: string;
+  priority: number;
 }
 
-export default function AnnouncementsAdminPage() {
-  const [items, setItems] = useState<AnnouncementItem[]>([]);
+export default function AdminAnnouncementsPage() {
+  const supabase = createClient();
+
+  const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
-  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  const [newTitle, setNewTitle] = useState('');
-  const [newContent, setNewContent] = useState('');
-  const [newLink, setNewLink] = useState('');
-
-  const fetchAnnouncements = async () => {
-    setLoading(true);
-    try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('announcements')
-        .select('*')
-        .order('created_at', { ascending: false });
-
-      if (!error && data) {
-        setItems(data);
-      } else {
-        // Mock default if table is empty
-        setItems([
-          {
-            id: 'mock-1',
-            title: 'KCET / NEET Option Entry 2026',
-            content: 'Document verification & choice filling desk is active at Sparsha Cyber Cafe.',
-            type: 'ticker',
-            link_url: '/counselling',
-            is_active: true,
-          },
-        ]);
-      }
-    } catch {
-      // Fallback in case of network issue
-      setItems([
-        {
-          id: 'mock-1',
-          title: 'KCET / NEET Option Entry 2026',
-          content: 'Document verification & choice filling desk is active at Sparsha Cyber Cafe.',
-          type: 'ticker',
-          link_url: '/counselling',
-          is_active: true,
-        },
-      ]);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Form states
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [title, setTitle] = useState('');
+  const [message, setMessage] = useState('');
+  const [linkUrl, setLinkUrl] = useState('');
+  const [isActive, setIsActive] = useState(true);
+  const [priority, setPriority] = useState(1);
+  const [saving, setSaving] = useState(false);
+  const [deletingId, setDeletingId] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchAnnouncements();
-  }, []);
+    let isMounted = true;
 
-  const handleAdd = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!newTitle.trim() || !newContent.trim()) return;
+    async function loadAnnouncements() {
+      try {
+        setLoading(true);
+        setErrorMsg(null);
 
-    setSubmitting(true);
-    const newEntry = {
-      title: newTitle.trim(),
-      content: newContent.trim(),
-      type: 'ticker',
-      link_url: newLink.trim() || '/services',
-      is_active: true,
+        const { data, error } = await supabase
+          .from('announcements')
+          .select('*')
+          .order('priority', { ascending: false });
+
+        if (error) throw error;
+        if (isMounted) {
+          setAnnouncements((data as Announcement[]) || []);
+        }
+      } catch (err: unknown) {
+        console.error('Failed to load announcements:', err);
+        if (isMounted) {
+          setErrorMsg(err instanceof Error ? err.message : 'Could not fetch announcements');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadAnnouncements();
+
+    return () => {
+      isMounted = false;
     };
+  }, [supabase]);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!title.trim() || !message.trim()) {
+      setErrorMsg('Title and message are required');
+      return;
+    }
+
+    setSaving(true);
+    setErrorMsg(null);
 
     try {
-      const supabase = createClient();
-      const { data, error } = await supabase
-        .from('announcements')
-        .insert([newEntry])
-        .select()
-        .single();
+      const payload = {
+        title: title.trim(),
+        message: message.trim(),
+        link_url: linkUrl.trim() || null,
+        is_active: isActive,
+        priority: Number(priority) || 1,
+        updated_at: new Date().toISOString()
+      };
 
-      if (!error && data) {
-        setItems([data, ...items]);
+      if (editingId) {
+        const { error } = await supabase
+          .from('announcements')
+          .update(payload)
+          .eq('id', editingId);
+
+        if (error) throw error;
+
+        setAnnouncements((prev) =>
+          prev.map((a) => (a.id === editingId ? { ...a, ...payload } : a))
+        );
       } else {
-        // Local state fallback
-        const localItem: AnnouncementItem = {
-          id: Date.now().toString(),
-          ...newEntry,
-        };
-        setItems([localItem, ...items]);
+        const { data, error } = await supabase
+          .from('announcements')
+          .insert([payload])
+          .select()
+          .single();
+
+        if (error) throw error;
+        if (data) {
+          setAnnouncements((prev) => [data as Announcement, ...prev]);
+        }
       }
 
-      setNewTitle('');
-      setNewContent('');
-      setNewLink('');
-    } catch {
-      const localItem: AnnouncementItem = {
-        id: Date.now().toString(),
-        ...newEntry,
-      };
-      setItems([localItem, ...items]);
+      handleCancel();
+    } catch (err: unknown) {
+      console.error('Failed to save announcement:', err);
+      setErrorMsg(err instanceof Error ? err.message : 'Failed to save announcement');
     } finally {
-      setSubmitting(false);
+      setSaving(false);
     }
   };
 
-  const toggleActive = async (id: string, currentStatus: boolean) => {
-    try {
-      const supabase = createClient();
-      await supabase
-        .from('announcements')
-        .update({ is_active: !currentStatus })
-        .eq('id', id);
+  const handleEdit = (announcement: Announcement) => {
+    setEditingId(announcement.id);
+    setTitle(announcement.title);
+    setMessage(announcement.message);
+    setLinkUrl(announcement.link_url || '');
+    setIsActive(announcement.is_active);
+    setPriority(announcement.priority);
+  };
 
-      setItems((prev) =>
-        prev.map((it) => (it.id === id ? { ...it, is_active: !currentStatus } : it))
-      );
-    } catch {
-      setItems((prev) =>
-        prev.map((it) => (it.id === id ? { ...it, is_active: !currentStatus } : it))
-      );
-    }
+  const handleCancel = () => {
+    setEditingId(null);
+    setTitle('');
+    setMessage('');
+    setLinkUrl('');
+    setIsActive(true);
+    setPriority(1);
   };
 
   const handleDelete = async (id: string) => {
-    if (!confirm('Are you sure you want to remove this broadcast?')) return;
+    if (!window.confirm('Are you sure you want to delete this alert?')) return;
+
     try {
-      const supabase = createClient();
-      await supabase.from('announcements').delete().eq('id', id);
-      setItems((prev) => prev.filter((it) => it.id !== id));
-    } catch {
-      setItems((prev) => prev.filter((it) => it.id !== id));
+      setDeletingId(id);
+      const { error } = await supabase.from('announcements').delete().eq('id', id);
+      if (error) throw error;
+
+      setAnnouncements((prev) => prev.filter((a) => a.id !== id));
+      if (editingId === id) handleCancel();
+    } catch (err: unknown) {
+      console.error('Failed to delete announcement:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete alert');
+    } finally {
+      setDeletingId(null);
     }
   };
 
   return (
-    <div className="space-y-8 max-w-5xl">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-black text-slate-900 tracking-tight">
-            Broadcast Flash & Deadline Announcements
-          </h1>
-          <p className="text-xs text-slate-500 mt-1">
-            Publish real-time ticker banners and urgent deadline alerts across the top of the live website.
-          </p>
-        </div>
-        <button
-          onClick={fetchAnnouncements}
-          disabled={loading}
-          className="p-2 text-slate-600 hover:text-slate-900 hover:bg-slate-100 rounded-xl transition"
-          title="Refresh List"
-        >
-          <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
-        </button>
+    <div className="space-y-8">
+      <div>
+        <h1 className="text-xl font-bold text-slate-900">Broadcast Alerts & Banners</h1>
+        <p className="text-xs text-slate-500">
+          Create top notification alerts for new application deadlines, holidays, and admissions
+        </p>
       </div>
 
-      {/* Create New Announcement Card */}
-      <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-        <h2 className="text-sm font-bold text-slate-900 flex items-center gap-2">
-          <Plus className="w-4 h-4 text-blue-600" />
-          Create New Live Alert Banner
+      {errorMsg && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
+          <span>{errorMsg}</span>
+        </div>
+      )}
+
+      {/* Create / Edit Form */}
+      <form onSubmit={handleSubmit} className="bg-white border border-slate-200 rounded-3xl p-6 space-y-4 shadow-xs">
+        <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">
+          {editingId ? 'Edit Announcement' : 'Publish New Banner Alert'}
         </h2>
 
-        <form onSubmit={handleAdd} className="space-y-4">
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                Alert Headline / Subject
-              </label>
-              <input
-                type="text"
-                required
-                value={newTitle}
-                onChange={(e) => setNewTitle(e.target.value)}
-                placeholder="e.g. KCET 2026 Option Entry Started"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-
-            <div className="space-y-1.5">
-              <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-                Target Route Link
-              </label>
-              <input
-                type="text"
-                value={newLink}
-                onChange={(e) => setNewLink(e.target.value)}
-                placeholder="/counselling or /services"
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
-              />
-            </div>
-          </div>
-
-          <div className="space-y-1.5">
-            <label className="text-xs font-bold text-slate-700 uppercase tracking-wide">
-              Announcement Details
-            </label>
-            <textarea
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">Headline Title *</label>
+            <input
+              type="text"
               required
-              rows={2}
-              value={newContent}
-              onChange={(e) => setNewContent(e.target.value)}
-              placeholder="Provide key dates, required documents, or closing timings..."
-              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs text-slate-900 focus:ring-2 focus:ring-blue-500 focus:outline-none"
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              placeholder="e.g. KCET 2026 Verification Extended"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
             />
           </div>
 
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">Action Link URL (Optional)</label>
+            <input
+              type="url"
+              value={linkUrl}
+              onChange={(e) => setLinkUrl(e.target.value)}
+              placeholder="https://... or /services/slug"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+            />
+          </div>
+
+          <div className="space-y-1 sm:col-span-2">
+            <label className="text-xs font-bold text-slate-700">Message Summary *</label>
+            <textarea
+              rows={2}
+              required
+              value={message}
+              onChange={(e) => setMessage(e.target.value)}
+              placeholder="Full ticker notice displayed on the top banner..."
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+            />
+          </div>
+
+          <div className="flex items-center gap-6 sm:col-span-2 pt-2">
+            <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={isActive}
+                onChange={(e) => setIsActive(e.target.checked)}
+                className="w-4 h-4 text-blue-600 rounded-sm border-slate-300"
+              />
+              <span>Banner Active</span>
+            </label>
+
+            <div className="flex items-center gap-2 text-xs">
+              <span className="font-bold text-slate-700">Priority:</span>
+              <input
+                type="number"
+                value={priority}
+                onChange={(e) => setPriority(Number(e.target.value))}
+                className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium"
+              />
+            </div>
+          </div>
+        </div>
+
+        <div className="flex items-center justify-end gap-3 pt-2">
+          {editingId && (
+            <button
+              type="button"
+              onClick={handleCancel}
+              className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl text-xs font-bold transition cursor-pointer"
+            >
+              Cancel
+            </button>
+          )}
           <button
             type="submit"
-            disabled={submitting}
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white font-bold text-xs rounded-xl shadow transition inline-flex items-center gap-2"
+            disabled={saving}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
           >
-            {submitting ? (
-              <>
-                <Loader2 className="w-4 h-4 animate-spin" />
-                <span>Publishing...</span>
-              </>
-            ) : (
-              <>
-                <Megaphone className="w-4 h-4" />
-                <span>Publish Broadcast</span>
-              </>
-            )}
+            {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
+            <span>{editingId ? 'Update Alert' : 'Publish Alert'}</span>
           </button>
-        </form>
-      </div>
+        </div>
+      </form>
 
-      {/* Existing Announcements List */}
-      <div className="space-y-3">
-        <h2 className="text-sm font-bold text-slate-900">Current Broadcasts</h2>
+      {/* Announcements List */}
+      <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xs">
         {loading ? (
-          <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-500">
-            <Loader2 className="w-5 h-5 animate-spin mx-auto text-blue-600 mb-2" />
-            Loading announcements...
+          <div className="p-12 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            <span>Loading announcements...</span>
           </div>
-        ) : items.length === 0 ? (
-          <div className="p-8 text-center bg-white rounded-2xl border border-slate-200 text-xs text-slate-400">
-            No announcements found. Create one above.
+        ) : announcements.length === 0 ? (
+          <div className="p-12 text-center text-xs text-slate-400 italic">
+            No announcements created yet.
           </div>
         ) : (
-          <div className="grid grid-cols-1 gap-3">
-            {items.map((item) => (
-              <div
-                key={item.id}
-                className={`p-5 rounded-2xl border transition flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 ${
-                  item.is_active
-                    ? 'bg-white border-blue-200 shadow-sm'
-                    : 'bg-slate-50 border-slate-200 opacity-60'
-                }`}
-              >
-                <div className="space-y-1">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider ${
-                        item.is_active
-                          ? 'bg-emerald-100 text-emerald-700'
-                          : 'bg-slate-200 text-slate-600'
-                      }`}
-                    >
-                      {item.is_active ? 'Active on Live Site' : 'Paused / Inactive'}
-                    </span>
-                    <span className="font-bold text-sm text-slate-900">{item.title}</span>
+          <div className="divide-y divide-slate-100">
+            {announcements.map((item) => (
+              <div key={item.id} className="p-4 sm:p-5 flex items-start justify-between gap-4 hover:bg-slate-50 transition">
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-xl bg-amber-50 text-amber-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <Bell className="w-4 h-4" />
                   </div>
-                  <p className="text-xs text-slate-600">{item.content}</p>
-                  <span className="text-[11px] text-blue-600 font-medium flex items-center gap-1">
-                    <LinkIcon className="w-3 h-3" /> {item.link_url}
-                  </span>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-bold text-slate-900">{item.title}</span>
+                      <span
+                        className={`text-[10px] px-2 py-0.5 rounded-md font-bold capitalize ${
+                          item.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                        }`}
+                      >
+                        {item.is_active ? 'Active' : 'Disabled'}
+                      </span>
+                    </div>
+                    <p className="text-xs text-slate-600 mt-1">{item.message}</p>
+                    {item.link_url && (
+                      <a
+                        href={item.link_url}
+                        target="_blank"
+                        rel="noreferrer"
+                        className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline mt-1.5"
+                      >
+                        <span>{item.link_url}</span>
+                        <ExternalLink className="w-3 h-3" />
+                      </a>
+                    )}
+                  </div>
                 </div>
 
-                <div className="flex items-center gap-2 shrink-0">
+                <div className="flex items-center gap-1 shrink-0">
                   <button
                     type="button"
-                    onClick={() => toggleActive(item.id, item.is_active)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition border ${
-                      item.is_active
-                        ? 'border-amber-300 text-amber-700 hover:bg-amber-50'
-                        : 'border-emerald-300 text-emerald-700 hover:bg-emerald-50'
-                    }`}
+                    onClick={() => handleEdit(item)}
+                    className="p-1.5 text-slate-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition cursor-pointer"
                   >
-                    {item.is_active ? 'Pause' : 'Activate'}
+                    <Edit3 className="w-4 h-4" />
                   </button>
                   <button
                     type="button"
                     onClick={() => handleDelete(item.id)}
-                    className="p-2 text-rose-500 hover:bg-rose-50 rounded-xl transition"
-                    title="Delete"
+                    disabled={deletingId === item.id}
+                    className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
                   >
-                    <Trash2 className="w-4 h-4" />
+                    {deletingId === item.id ? (
+                      <Loader2 className="w-4 h-4 animate-spin" />
+                    ) : (
+                      <Trash2 className="w-4 h-4" />
+                    )}
                   </button>
                 </div>
               </div>

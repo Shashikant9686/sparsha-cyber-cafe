@@ -1,217 +1,217 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
-import { Plus, Edit2, Trash2, Search, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
+import { Plus, Search, Trash2, Edit3, ExternalLink, Loader2, AlertCircle } from 'lucide-react';
 
-interface ServiceListItem {
+interface ServiceRecord {
   id: string;
-  name?: string | null;
-  title?: string | null;
+  name: string;
   slug: string;
-  category?: string | null;
-  category_id?: string | null;
-  fee?: number | string | null;
-  official_fee?: number | string | null;
-  service_charge?: number | string | null;
-  status?: string | null;
-  display_order?: number | null;
+  status: 'active' | 'inactive' | 'draft';
+  fee: number | null;
+  service_charge: number | null;
+  submission_method: string | null;
+  categories: {
+    name: string;
+  } | null;
 }
 
 export default function AdminServicesPage() {
   const supabase = createClient();
-  const [services, setServices] = useState<ServiceListItem[]>([]);
+
+  const [services, setServices] = useState<ServiceRecord[]>([]);
   const [loading, setLoading] = useState(true);
-  const [fetchError, setFetchError] = useState<string | null>(null);
-  const [searchQuery, setSearchQuery] = useState('');
-
-  const fetchServices = useCallback(async () => {
-    try {
-      setLoading(true);
-      setFetchError(null);
-
-      const { data, error: err } = await supabase
-        .from('services')
-        .select('*')
-        .order('id', { ascending: false });
-
-      if (err) throw err;
-      setServices((data as ServiceListItem[]) || []);
-    } catch (err: unknown) {
-      const errorObj = err as { message?: string; details?: string; hint?: string; code?: string };
-      console.error('Error fetching services:', {
-        message: err instanceof Error ? err.message : errorObj?.message || String(err),
-        details: errorObj?.details,
-        hint: errorObj?.hint,
-        code: errorObj?.code,
-      });
-      setFetchError(errorObj?.message || (err instanceof Error ? err.message : 'Failed to load services list'));
-    } finally {
-      setLoading(false);
-    }
-  }, [supabase]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
   useEffect(() => {
-    fetchServices();
-  }, [fetchServices]);
+    let isMounted = true;
 
-  const handleDelete = async (id: string, displayName: string) => {
-    if (!confirm(`Are you sure you want to delete "${displayName}"?`)) return;
+    async function loadServices() {
+      try {
+        setLoading(true);
+        setErrorMsg(null);
+
+        const { data, error } = await supabase
+          .from('services')
+          .select('id, name, slug, status, fee, service_charge, submission_method, categories(name)')
+          .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (isMounted) {
+          setServices((data as unknown as ServiceRecord[]) || []);
+        }
+      } catch (err: unknown) {
+        console.error('Failed to fetch services:', err);
+        if (isMounted) {
+          setErrorMsg(err instanceof Error ? err.message : 'Could not fetch services list');
+        }
+      } finally {
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadServices();
+
+    return () => {
+      isMounted = false;
+    };
+  }, [supabase]);
+
+  const handleDelete = async (id: string, name: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${name}"?`)) return;
 
     try {
-      // 1. Delete linked required documents
+      setDeletingId(id);
       await supabase.from('required_documents').delete().eq('service_id', id);
-      
-      // 2. Delete linked service images
       await supabase.from('service_images').delete().eq('service_id', id);
 
-      // 3. Delete the service
-      const { error: delError } = await supabase
-        .from('services')
-        .delete()
-        .eq('id', id);
-
-      if (delError) throw delError;
+      const { error } = await supabase.from('services').delete().eq('id', id);
+      if (error) throw error;
 
       setServices((prev) => prev.filter((s) => s.id !== id));
     } catch (err: unknown) {
-      const errorObj = err as { message?: string; details?: string; hint?: string; code?: string };
-      console.error('Error deleting service:', {
-        message: err instanceof Error ? err.message : errorObj?.message || String(err),
-        details: errorObj?.details,
-        hint: errorObj?.hint,
-        code: errorObj?.code,
-      });
-      alert(errorObj?.message || (err instanceof Error ? err.message : 'Failed to delete service'));
+      console.error('Failed to delete service:', err);
+      alert(err instanceof Error ? err.message : 'Failed to delete service');
+    } finally {
+      setDeletingId(null);
     }
   };
 
-  const filteredServices = services.filter((s) => {
-    const sName = (s.name || s.title || '').toLowerCase();
-    const sCat = (s.category || '').toLowerCase();
-    const query = searchQuery.toLowerCase();
-    return sName.includes(query) || sCat.includes(query);
-  });
+  const filtered = services.filter((s) =>
+    s.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    s.categories?.name?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+      {/* Header */}
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl font-black text-slate-900">Services Manager</h1>
-          <p className="text-xs text-slate-500">Manage catalog entries, requirements, and charges.</p>
+          <h1 className="text-xl font-bold text-slate-900">Services Catalog</h1>
+          <p className="text-xs text-slate-500">
+            Create, update fees, and manage required document checklists
+          </p>
         </div>
+
         <Link
           href="/admin/services/new"
-          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
+          className="inline-flex items-center gap-2 px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition shadow-xs w-fit"
         >
           <Plus className="w-4 h-4" />
           <span>Add New Service</span>
         </Link>
       </div>
 
-      {fetchError && (
-        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700 flex items-start gap-2.5 shadow-xs">
-          <AlertCircle className="w-4 h-4 shrink-0 mt-0.5" />
-          <div>
-            <span className="font-bold">Failed to load services: </span>
-            {fetchError}
-          </div>
+      {errorMsg && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl flex items-center gap-3 text-rose-800 text-xs">
+          <AlertCircle className="w-5 h-5 shrink-0 text-rose-600" />
+          <span>{errorMsg}</span>
         </div>
       )}
 
-      <div className="relative">
+      {/* Search Filter */}
+      <div className="relative max-w-sm">
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
-          placeholder="Filter by name or category..."
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full pl-9 pr-4 py-2.5 bg-white border border-slate-200 rounded-xl text-xs font-medium text-slate-900 placeholder:text-slate-400 focus:outline-hidden focus:ring-2 focus:ring-blue-500"
+          placeholder="Search by name or category..."
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden transition"
         />
       </div>
 
+      {/* Table Card */}
       <div className="bg-white border border-slate-200 rounded-3xl overflow-hidden shadow-xs">
         {loading ? (
-          <div className="p-12 flex flex-col items-center justify-center text-slate-400">
-            <Loader2 className="w-6 h-6 animate-spin mb-2" />
-            <span className="text-xs">Loading services...</span>
+          <div className="p-12 flex flex-col items-center justify-center gap-2 text-slate-400 text-xs">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600" />
+            <span>Loading services catalog...</span>
           </div>
-        ) : filteredServices.length === 0 ? (
-          <div className="p-12 text-center text-slate-400 text-xs">
-            {searchQuery ? 'No services match your search filter.' : 'No services found.'}
+        ) : filtered.length === 0 ? (
+          <div className="p-12 text-center text-xs text-slate-400 italic">
+            No matching services found.
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-left text-xs">
-              <thead className="bg-slate-50 border-b border-slate-200 text-slate-600 font-bold">
-                <tr>
-                  <th className="py-3 px-4">Service</th>
-                  <th className="py-3 px-4">Category</th>
-                  <th className="py-3 px-4">Govt Fee</th>
-                  <th className="py-3 px-4">Cafe Fee</th>
-                  <th className="py-3 px-4">Status</th>
-                  <th className="py-3 px-4 text-right">Actions</th>
+            <table className="w-full text-left text-xs border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-200 text-slate-500 font-bold uppercase tracking-wider text-[11px]">
+                  <th className="py-3.5 px-4">Service Name</th>
+                  <th className="py-3.5 px-4">Category</th>
+                  <th className="py-3.5 px-4">Pricing</th>
+                  <th className="py-3.5 px-4">Status</th>
+                  <th className="py-3.5 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-100 font-medium">
-                {filteredServices.map((svc) => {
-                  const displayName = svc.name || svc.title || 'Untitled Service';
-                  const displayFee = svc.official_fee != null ? svc.official_fee : svc.fee;
-                  return (
-                    <tr key={svc.id} className="hover:bg-slate-50/50">
-                      <td className="py-3.5 px-4">
-                        <div className="font-bold text-slate-900">{displayName}</div>
-                        <div className="text-[11px] text-slate-400">{svc.slug}</div>
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600">
-                        {svc.category || '—'}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600">
-                        {displayFee != null ? `₹${displayFee}` : 'Free'}
-                      </td>
-                      <td className="py-3.5 px-4 text-slate-600">
-                        {svc.service_charge != null ? `₹${svc.service_charge}` : '—'}
-                      </td>
-                      <td className="py-3.5 px-4">
-                        <span className={`inline-flex px-2 py-0.5 rounded-md text-[10px] font-bold ${
-                          svc.status === 'Active' || !svc.status
-                            ? 'bg-emerald-50 text-emerald-700' 
-                            : 'bg-slate-100 text-slate-600'
-                        }`}>
-                          {svc.status || 'Active'}
+              <tbody className="divide-y divide-slate-100 text-slate-700">
+                {filtered.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/70 transition">
+                    <td className="py-3.5 px-4 font-bold text-slate-900">
+                      <div className="flex items-center gap-2">
+                        <span>{item.name}</span>
+                        <Link
+                          href={`/services/${item.slug}`}
+                          target="_blank"
+                          className="text-slate-400 hover:text-blue-600 transition"
+                        >
+                          <ExternalLink className="w-3.5 h-3.5" />
+                        </Link>
+                      </div>
+                    </td>
+                    <td className="py-3.5 px-4 font-medium text-slate-600">
+                      {item.categories?.name || '—'}
+                    </td>
+                    <td className="py-3.5 px-4 font-medium">
+                      {item.fee != null || item.service_charge != null ? (
+                        <span>
+                          Govt: ₹{item.fee ?? 0} | Cafe: ₹{item.service_charge ?? 0}
                         </span>
-                      </td>
-                      <td className="py-3.5 px-4 text-right">
-                        <div className="inline-flex items-center justify-end gap-2">
-                          <Link
-                            href={`/services/${svc.slug}`}
-                            target="_blank"
-                            className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition"
-                            title="View Live"
-                          >
-                            <ExternalLink className="w-3.5 h-3.5" />
-                          </Link>
-                          <Link
-                            href={`/admin/services/${svc.id}`}
-                            className="p-1.5 text-blue-600 hover:bg-blue-50 rounded-lg transition"
-                            title="Edit"
-                          >
-                            <Edit2 className="w-3.5 h-3.5" />
-                          </Link>
-                          <button
-                            type="button"
-                            onClick={() => handleDelete(svc.id, displayName)}
-                            className="p-1.5 text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer"
-                            title="Delete"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
+                      ) : (
+                        <span className="text-slate-400 italic">Not set</span>
+                      )}
+                    </td>
+                    <td className="py-3.5 px-4">
+                      <span
+                        className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-bold capitalize ${
+                          item.status === 'active'
+                            ? 'bg-emerald-50 text-emerald-700'
+                            : item.status === 'draft'
+                            ? 'bg-amber-50 text-amber-700'
+                            : 'bg-slate-100 text-slate-600'
+                        }`}
+                      >
+                        {item.status}
+                      </span>
+                    </td>
+                    <td className="py-3.5 px-4 text-right space-x-2">
+                      <Link
+                        href={`/admin/services/${item.id}`}
+                        className="inline-flex p-1.5 text-slate-500 hover:text-blue-600 hover:bg-slate-100 rounded-lg transition"
+                      >
+                        <Edit3 className="w-4 h-4" />
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={() => handleDelete(item.id, item.name)}
+                        disabled={deletingId === item.id}
+                        className="inline-flex p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
+                      >
+                        {deletingId === item.id ? (
+                          <Loader2 className="w-4 h-4 animate-spin" />
+                        ) : (
+                          <Trash2 className="w-4 h-4" />
+                        )}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
               </tbody>
             </table>
           </div>
