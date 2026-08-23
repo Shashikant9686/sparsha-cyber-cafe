@@ -1,169 +1,124 @@
 'use client';
 
 import React, { useState } from 'react';
-import Image from 'next/image';
 import { createClient } from '@/lib/supabase/client';
-import { UploadCloud, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Upload, X, Loader2, Image as ImageIcon } from 'lucide-react';
 
-const MAX_FILE_SIZE_BYTES = 5 * 1024 * 1024; // 5 MB
-const ALLOWED_MIME_TYPES = ['image/jpeg', 'image/png', 'image/webp', 'image/jpg'];
-
-export interface UploadedImage {
-  id?: string;
-  image_url: string;
-  image_type?: string;
-  alt_text?: string;
-  display_order?: number;
-}
-
-export interface ImageUploaderProps {
-  images: UploadedImage[];
-  onChange: (images: UploadedImage[]) => void;
-  bucketName?: 'service-images' | 'service-posters';
+interface ImageUploaderProps {
+  onUploadComplete: (url: string) => void;
+  currentImageUrl?: string;
+  bucketName?: string;
 }
 
 export default function ImageUploader({
-  images,
-  onChange,
+  onUploadComplete,
+  currentImageUrl,
   bucketName = 'service-images',
 }: ImageUploaderProps) {
-  const supabase = createClient();
   const [uploading, setUploading] = useState(false);
+  const [preview, setPreview] = useState<string | null>(currentImageUrl || null);
   const [error, setError] = useState<string | null>(null);
 
-  const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
-    if (!files || files.length === 0) return;
+  const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
 
-    setError(null);
-    const validFiles: File[] = [];
+    // Validate size (5MB limit)
+    if (file.size > 5 * 1024 * 1024) {
+      setError('File size must be under 5MB');
+      return;
+    }
 
-    for (let i = 0; i < files.length; i++) {
-      const file = files[i];
-
-      if (!ALLOWED_MIME_TYPES.includes(file.type.toLowerCase())) {
-        setError(`"${file.name}" has an unsupported format. Only JPG, PNG, and WEBP files are allowed.`);
-        return;
-      }
-
-      if (file.size > MAX_FILE_SIZE_BYTES) {
-        setError(`"${file.name}" exceeds the 5 MB size limit (${(file.size / (1024 * 1024)).toFixed(2)} MB).`);
-        return;
-      }
-
-      validFiles.push(file);
+    // Validate mime type
+    const validTypes = ['image/jpeg', 'image/png', 'image/webp'];
+    if (!validTypes.includes(file.type)) {
+      setError('Only JPG, PNG, and WebP images are allowed');
+      return;
     }
 
     try {
       setUploading(true);
-      const uploadedList: UploadedImage[] = [...images];
+      setError(null);
 
-      for (const file of validFiles) {
-        const fileExt = file.name.split('.').pop()?.toLowerCase();
-        const safeName = file.name.replace(/[^a-zA-Z0-9]/g, '_');
-        const fileName = `${Date.now()}_${safeName}.${fileExt}`;
-        const filePath = `posters/${fileName}`;
+      const supabase = createClient();
+      const fileExt = file.name.split('.').pop();
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
+      const filePath = `posters/${fileName}`;
 
-        const { error: uploadError } = await supabase.storage
-          .from(bucketName)
-          .upload(filePath, file, {
-            cacheControl: '3600',
-            upsert: false,
-            contentType: file.type,
-          });
-
-        if (uploadError) {
-          throw new Error(`Upload failed: ${uploadError.message}`);
-        }
-
-        const { data: publicUrlData } = supabase.storage
-          .from(bucketName)
-          .getPublicUrl(filePath);
-
-        uploadedList.push({
-          image_url: publicUrlData.publicUrl,
-          image_type: 'poster',
-          alt_text: file.name.replace(/\.[^/.]+$/, ''),
-          display_order: uploadedList.length + 1,
+      const { error: uploadError } = await supabase.storage
+        .from(bucketName)
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false,
         });
+
+      if (uploadError) {
+        throw uploadError;
       }
 
-      onChange(uploadedList);
-    } catch (err: unknown) {
-      const errMessage = err instanceof Error ? err.message : 'An error occurred during upload.';
-      setError(errMessage);
+      const { data: publicUrlData } = supabase.storage
+        .from(bucketName)
+        .getPublicUrl(filePath);
+
+      setPreview(publicUrlData.publicUrl);
+      onUploadComplete(publicUrlData.publicUrl);
+    } catch (err: any) {
+      setError(err.message || 'Failed to upload image');
     } finally {
       setUploading(false);
-      e.target.value = '';
     }
   };
 
-  const removeImage = (index: number) => {
-    const copy = images.filter((_, i) => i !== index);
-    onChange(copy);
+  const handleRemove = () => {
+    setPreview(null);
+    onUploadComplete('');
   };
 
   return (
     <div className="space-y-3">
-      <div className="flex items-center justify-between">
-        <label className="block text-xs font-bold text-slate-700 uppercase tracking-wide">
-          Official Notification Posters & Circulars
+      {preview ? (
+        <div className="relative w-full max-w-sm h-48 rounded-2xl overflow-hidden border border-slate-200 shadow-sm group">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img
+            src={preview}
+            alt="Uploaded poster preview"
+            className="w-full h-full object-cover"
+          />
+          <button
+            type="button"
+            onClick={handleRemove}
+            className="absolute top-2 right-2 p-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-full transition shadow-md"
+            title="Remove image"
+          >
+            <X className="w-4 h-4" />
+          </button>
+        </div>
+      ) : (
+        <label className="flex flex-col items-center justify-center w-full max-w-sm h-40 border-2 border-dashed border-slate-300 hover:border-blue-500 rounded-2xl cursor-pointer bg-slate-50 hover:bg-blue-50/40 transition p-4 text-center">
+          <div className="flex flex-col items-center justify-center pt-2 pb-3">
+            {uploading ? (
+              <Loader2 className="w-8 h-8 text-blue-600 animate-spin mb-2" />
+            ) : (
+              <Upload className="w-8 h-8 text-slate-400 mb-2 group-hover:text-blue-600" />
+            )}
+            <p className="text-xs font-bold text-slate-700">
+              {uploading ? 'Uploading image...' : 'Click or drag image to upload'}
+            </p>
+            <p className="text-[11px] text-slate-400 mt-1">PNG, JPG, WebP up to 5MB</p>
+          </div>
+          <input
+            type="file"
+            className="hidden"
+            accept="image/jpeg,image/png,image/webp"
+            onChange={handleFileChange}
+            disabled={uploading}
+          />
         </label>
-        <span className="text-[10px] text-slate-400">JPG, PNG, WEBP (Max 5 MB)</span>
-      </div>
+      )}
 
       {error && (
-        <div className="p-3 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-2 text-xs text-rose-700 font-semibold">
-          <AlertCircle className="w-4 h-4 shrink-0" />
-          <span>{error}</span>
-        </div>
+        <p className="text-xs text-rose-600 font-medium">{error}</p>
       )}
-
-      {images.length > 0 && (
-        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-          {images.map((img, idx) => (
-            <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 h-28 bg-slate-50">
-              <Image
-                src={img.image_url || ''}
-                alt={img.alt_text || 'Poster preview'}
-                fill
-                className="object-cover"
-                sizes="(max-width: 640px) 50vw, 25vw"
-              />
-              <button
-                type="button"
-                onClick={() => removeImage(idx)}
-                className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-lg opacity-0 group-hover:opacity-100 transition shadow"
-                title="Remove image"
-              >
-                <Trash2 className="w-3.5 h-3.5" />
-              </button>
-            </div>
-          ))}
-        </div>
-      )}
-
-      <label className="border-2 border-dashed border-slate-200 hover:border-blue-400 bg-slate-50/50 hover:bg-blue-50/20 rounded-2xl p-4 flex flex-col items-center justify-center cursor-pointer transition">
-        <input
-          type="file"
-          multiple
-          accept="image/jpeg,image/png,image/webp"
-          onChange={handleFileUpload}
-          disabled={uploading}
-          className="hidden"
-        />
-        {uploading ? (
-          <div className="flex items-center gap-2 text-xs font-semibold text-blue-600">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Validating and uploading...</span>
-          </div>
-        ) : (
-          <div className="flex items-center gap-2 text-xs text-slate-500 font-semibold">
-            <UploadCloud className="w-4 h-4 text-blue-600" />
-            <span>Click to upload notification flyers or drag files here</span>
-          </div>
-        )}
-      </label>
     </div>
   );
 }
