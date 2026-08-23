@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import WebsiteQR from '@/components/WebsiteQR';
 import { 
-  FileCheck, 
   Sparkles, 
   MapPin, 
   Phone, 
@@ -13,7 +12,9 @@ import {
   MessageCircle, 
   ShieldCheck, 
   GraduationCap, 
-  Layers 
+  FileText,
+  FileCheck,
+  Printer
 } from 'lucide-react';
 
 export const dynamic = 'force-dynamic';
@@ -22,7 +23,7 @@ export const revalidate = 0;
 export default async function HomePage() {
   const supabase = await createClient();
 
-  // Fetch featured services and active announcement
+  // Fetch active featured services and announcements
   const [{ data: services }, { data: announcement }] = await Promise.all([
     supabase
       .from('services')
@@ -165,22 +166,45 @@ export default async function HomePage() {
         )}
       </section>
 
-      {/* Public Scan & Save Section */}
+      {/* Admissions Fast-Track Banner */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="bg-slate-900 rounded-3xl p-8 sm:p-12 text-white flex flex-col md:flex-row items-center justify-between gap-8 border border-slate-800 shadow-xl">
-          <div className="space-y-3 text-center md:text-left">
-            <span className="inline-block px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full">
-              Mobile Portal Access
+        <div className="bg-linear-to-r from-blue-900 via-indigo-900 to-slate-900 rounded-3xl p-8 sm:p-10 text-white flex flex-col md:flex-row items-center justify-between gap-6 shadow-xl">
+          <div className="space-y-3 max-w-xl">
+            <span className="inline-block px-3 py-1 bg-white/10 text-blue-300 text-xs font-bold rounded-full">
+              ADMISSIONS 2026
             </span>
             <h2 className="text-2xl sm:text-3xl font-black tracking-tight">
+              KCET, NEET & DCET Option Entry Guidance
+            </h2>
+            <p className="text-slate-300 text-xs sm:text-sm leading-relaxed">
+              Don't risk seat rejection. We help you create personalized college priority trees, calculate cutoff possibilities, and verify 371(J) HK claims.
+            </p>
+          </div>
+          <Link
+            href="/counselling"
+            className="px-6 py-3.5 bg-amber-400 hover:bg-amber-300 text-slate-950 font-black text-xs sm:text-sm rounded-xl shadow-lg transition shrink-0"
+          >
+            Check Live Cutoffs & Dates
+          </Link>
+        </div>
+      </section>
+
+      {/* Public QR Showcase Section */}
+      <section className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="bg-slate-900 rounded-3xl p-8 sm:p-12 text-white flex flex-col md:flex-row items-center justify-between gap-8 border border-slate-800 shadow-2xl">
+          <div className="space-y-3 text-center md:text-left max-w-lg">
+            <span className="inline-block px-3 py-1 bg-blue-500/20 text-blue-300 text-xs font-bold rounded-full border border-blue-500/30">
+              Mobile Portal Access
+            </span>
+            <h2 className="text-2xl sm:text-3xl font-black tracking-tight text-white">
               Scan & Carry Sparsha Seva On Your Phone
             </h2>
-            <p className="text-slate-400 text-xs sm:text-sm max-w-lg leading-relaxed">
-              Scan with your mobile camera or Google Lens to view all 371(J) guidelines, admission alerts, and pre-verify your certificates directly over WhatsApp.
+            <p className="text-slate-400 text-xs sm:text-sm leading-relaxed">
+              Scan with any mobile camera or Google Lens to view all 371(J) guidelines, admission alerts, and pre-verify your certificates directly over WhatsApp.
             </p>
           </div>
 
-          <div className="shrink-0">
+          <div className="shrink-0 flex justify-center w-full md:w-auto">
             <WebsiteQR />
           </div>
         </div>

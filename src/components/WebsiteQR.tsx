@@ -1,67 +1,58 @@
 'use client';
 
 import React from 'react';
-import { QRCodeSVG } from 'qrcode.react';
 import { QrCode, Download } from 'lucide-react';
 
 export default function WebsiteQR() {
   const siteUrl = 'https://sparsha-cyber-cafe.vercel.app';
+  const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(siteUrl)}`;
 
-  const downloadQR = () => {
-    const svg = document.getElementById('sparsha-qr-svg') as SVGElement | null;
-    if (!svg) return;
-
-    const svgData = new XMLSerializer().serializeToString(svg);
-    const canvas = document.createElement('canvas');
-    const ctx = canvas.getContext('2d');
-    const img = new Image();
-
-    img.onload = () => {
-      canvas.width = 400;
-      canvas.height = 400;
-      if (ctx) {
-        ctx.fillStyle = '#ffffff';
-        ctx.fillRect(0, 0, 400, 400);
-        ctx.drawImage(img, 20, 20, 360, 360);
-      }
-      const pngFile = canvas.toDataURL('image/png');
-      const downloadLink = document.createElement('a');
-      downloadLink.download = 'sparsha-portal-qr.png';
-      downloadLink.href = pngFile;
-      downloadLink.click();
-    };
-
-    img.src = `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svgData)))}`;
+  const handleDownload = async () => {
+    try {
+      const response = await fetch(qrImageUrl);
+      const blob = await response.blob();
+      const blobUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = 'sparsha-counter-qr.png';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      window.URL.revokeObjectURL(blobUrl);
+    } catch {
+      window.open(qrImageUrl, '_blank');
+    }
   };
 
   return (
-    <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm text-center space-y-3 w-64">
-      <div className="flex items-center justify-center gap-1.5 text-slate-800 font-bold text-xs">
-        <QrCode className="w-4 h-4 text-blue-600" />
-        <span>Counter QR Code</span>
+    <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl text-center space-y-3 w-60 shadow-xl mx-auto md:mx-0">
+      <div className="flex items-center justify-center gap-2 text-slate-100 font-bold text-xs">
+        <QrCode className="w-4 h-4 text-blue-400" />
+        <span>Scan Sparsha Seva</span>
       </div>
 
-      <div className="bg-slate-50 p-3 rounded-xl inline-block border border-slate-100">
-        <QRCodeSVG
-          id="sparsha-qr-svg"
-          value={siteUrl}
-          size={160}
-          level="H"
-          includeMargin={false}
+      <div className="bg-white p-2.5 rounded-2xl inline-block shadow-inner">
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img
+          src={qrImageUrl}
+          alt="Sparsha Cyber Cafe QR Code"
+          width={150}
+          height={150}
+          className="rounded-lg block"
         />
       </div>
 
-      <p className="text-[10px] text-slate-400">
-        Scan opens live customer portal directly.
+      <p className="text-[11px] text-slate-400 leading-tight">
+        Scan with your mobile camera to access online seva & checklists.
       </p>
 
       <button
         type="button"
-        onClick={downloadQR}
-        className="w-full py-2 px-3 bg-slate-900 hover:bg-slate-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs"
+        onClick={handleDownload}
+        className="w-full py-2 px-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm cursor-pointer"
       >
         <Download className="w-3.5 h-3.5" />
-        <span>Download Standee</span>
+        <span>Download QR Card</span>
       </button>
     </div>
   );
