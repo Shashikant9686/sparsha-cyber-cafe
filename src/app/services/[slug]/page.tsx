@@ -1,226 +1,250 @@
-import React from 'react';
-import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { 
   ArrowLeft, 
-  Calendar, 
+  Clock, 
+  IndianRupee, 
+  FileText, 
+  CheckCircle2, 
   ExternalLink, 
-  ShieldAlert, 
-  Tag, 
-  Image as ImageIcon 
+  AlertTriangle,
+  MessageCircle,
+  Check
 } from 'lucide-react';
-import ServiceChecklistSection from '@/components/services/ServiceChecklistSection';
-import type { Category, RequiredDocument, ServiceImage } from '@/lib/types';
 
-interface ServiceDetail {
-  id: string;
-  name: string;
-  slug: string;
-  category_id?: string | null;
-  categories?: Pick<Category, 'name'> | null;
-  short_description?: string | null;
-  full_description?: string | null;
-  fee?: number | null;
-  service_charge?: number | null;
-  status?: string;
-  featured?: boolean;
-  disclaimer?: string | null;
-  official_link?: string | null;
-  start_date?: string | null;
-  last_date?: string | null;
-  required_documents?: RequiredDocument[];
-  service_images?: ServiceImage[];
+interface Props {
+  params: Promise<{ slug: string }> | { slug: string };
 }
 
-interface ServicePageProps {
-  params: Promise<{
-    slug: string;
-  }>;
-}
+export default async function ServiceDetailPage({ params }: Props) {
+  const resolvedParams = await params;
+  const { slug } = resolvedParams;
+  const decodedSlug = decodeURIComponent(slug);
 
-export const revalidate = 60;
-
-export default async function ServiceDetailPage({ params }: ServicePageProps) {
-  const { slug } = await params;
   const supabase = await createClient();
 
-  const { data, error } = await supabase
+  // 1. Fetch base service by slug or id
+  const { data: service, error: serviceError } = await supabase
     .from('services')
-    .select('*, categories(name), required_documents(*), service_images(*)')
-    .eq('slug', slug)
-    .single();
+    .select('*')
+    .or(`slug.eq.${decodedSlug},id.eq.${decodedSlug}`)
+    .maybeSingle();
 
-  if (error || !data || data.status?.toLowerCase() === 'hidden') {
+  if (serviceError) {
+    console.error('Error loading service by slug:', serviceError);
+  }
+
+  if (!service) {
     notFound();
   }
 
-  const service = data as unknown as ServiceDetail;
-  const documents = service.required_documents || [];
-  const images = (service.service_images || []).sort(
-    (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
-  );
+  // 2. Fetch required documents
+  const { data: docs } = await supabase
+    .from('required_documents')
+    .select('*')
+    .eq('service_id', service.id)
+    .order('display_order', { ascending: true });
 
-  const hasFee = service.fee !== null && service.fee !== undefined;
-  const hasServiceCharge = service.service_charge !== null && service.service_charge !== undefined;
-  const hasStartDate = Boolean(service.start_date);
-  const hasLastDate = Boolean(service.last_date);
-  const showMetaGrid = hasFee || hasServiceCharge || hasStartDate || hasLastDate;
+  // 3. Fetch images/posters
+  const { data: images } = await supabase
+    .from('service_images')
+    .select('*')
+    .eq('service_id', service.id)
+    .order('display_order', { ascending: true });
+
+  const displayName = service.name || service.title || 'Service Details';
+  const displayFee = service.official_fee != null ? service.official_fee : service.fee;
+  const displayDocs = docs || [];
+  const displayImages = images || [];
+
+  // Build WhatsApp share link
+  const docChecklistText = displayDocs.length > 0
+    ? '\n\n*Required Documents:*\n' + displayDocs.map((d: { document_name: string }, i: number) => `${i + 1}. ${d.document_name}`).join('\n')
+    : '';
+
+  const waMessage = encodeURIComponent(
+    `Hello Sparsha Cyber Cafe, I would like to apply for *${displayName}*.\nCould you please guide me on the next steps?${docChecklistText}`
+  );
+  const waUrl = `https://wa.me/919980649686?text=${waMessage}`;
 
   return (
-    <div className="max-w-4xl mx-auto space-y-8 pb-16">
-      {/* Top Breadcrumb / Category Badge */}
-      <div className="flex items-center justify-between">
+    <div className="min-h-screen bg-slate-50/50 py-8 px-4 sm:px-6 lg:px-8">
+      <div className="max-w-4xl mx-auto space-y-6">
+        {/* Back Link */}
         <Link
           href="/services"
-          className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-slate-900 transition"
+          className="inline-flex items-center gap-2 text-xs font-bold text-slate-500 hover:text-blue-600 transition"
         >
           <ArrowLeft className="w-4 h-4" />
-          <span>Back to All Services</span>
+          <span>Back to all services</span>
         </Link>
-        {service.categories?.name && (
-          <span className="text-[10px] font-bold uppercase tracking-wider text-blue-700 bg-blue-50 px-2.5 py-1 rounded-lg border border-blue-100">
-            {service.categories.name}
-          </span>
-        )}
-      </div>
 
-      {/* Main Header Card */}
-      <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
-        <div className="space-y-2">
-          {service.categories?.name && (
-            <div className="flex items-center gap-1 text-xs text-slate-500 font-semibold">
-              <Tag className="w-3.5 h-3.5 text-slate-400" />
-              <span>{service.categories.name}</span>
-            </div>
-          )}
+        {/* Main Header Card */}
+        <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+          <div className="flex flex-wrap items-center gap-2">
+            {service.category && (
+              <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-bold rounded-full">
+                {service.category}
+              </span>
+            )}
+            <span className="px-3 py-1 bg-slate-100 text-slate-700 text-xs font-bold rounded-full capitalize">
+              {service.submission_method || 'Online'}
+            </span>
+          </div>
 
           <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
-            {service.name}
+            {displayName}
           </h1>
 
-          {service.short_description && (
-            <p className="text-slate-600 text-xs sm:text-sm leading-relaxed">
-              {service.short_description}
+          {(service.short_description || service.description) && (
+            <p className="text-sm text-slate-600 leading-relaxed">
+              {service.short_description || service.description}
             </p>
           )}
-        </div>
 
-        {/* Conditional Pricing & Dates Grid */}
-        {showMetaGrid && (
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 pt-4 border-t border-slate-100">
-            {hasFee && (
-              <div className="p-3.5 bg-slate-50 rounded-2xl">
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Official Fee</span>
-                <span className="text-sm font-black text-slate-900">
-                  {service.fee === 0 ? 'Free' : `₹${service.fee}`}
-                </span>
+          {/* Pricing & Time Stats */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 pt-4 border-t border-slate-100">
+            <div className="p-3.5 bg-slate-50 rounded-2xl">
+              <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                <IndianRupee className="w-3.5 h-3.5" />
+                <span>Govt Fee</span>
               </div>
-            )}
-
-            {hasServiceCharge && (
-              <div className="p-3.5 bg-slate-50 rounded-2xl">
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Service Charge</span>
-                <span className="text-sm font-black text-slate-900">
-                  {service.service_charge === 0 ? '₹0' : `₹${service.service_charge}`}
-                </span>
+              <div className="text-base font-black text-slate-900 mt-0.5">
+                {displayFee != null ? `₹${displayFee}` : 'Free / Nil'}
               </div>
-            )}
+            </div>
 
-            {hasStartDate && (
-              <div className="p-3.5 bg-slate-50 rounded-2xl">
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Start Date</span>
-                <span className="text-xs font-bold text-slate-800 flex items-center gap-1 mt-0.5">
-                  <Calendar className="w-3 h-3 text-slate-400" />
-                  {new Date(service.start_date as string).toLocaleDateString()}
-                </span>
+            <div className="p-3.5 bg-slate-50 rounded-2xl">
+              <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                <IndianRupee className="w-3.5 h-3.5" />
+                <span>Cafe Service Fee</span>
               </div>
-            )}
+              <div className="text-base font-black text-blue-600 mt-0.5">
+                {service.service_charge != null ? `₹${service.service_charge}` : 'Nominal'}
+              </div>
+            </div>
 
-            {hasLastDate && (
-              <div className="p-3.5 bg-slate-50 rounded-2xl">
-                <span className="text-[10px] font-bold uppercase text-slate-400 block">Last Date</span>
-                <span className="text-xs font-bold text-rose-600 flex items-center gap-1 mt-0.5">
-                  <Calendar className="w-3 h-3 text-rose-500" />
-                  {new Date(service.last_date as string).toLocaleDateString()}
-                </span>
+            {service.processing_time && (
+              <div className="p-3.5 bg-slate-50 rounded-2xl col-span-2 sm:col-span-1">
+                <div className="flex items-center gap-1.5 text-slate-400 text-xs font-medium">
+                  <Clock className="w-3.5 h-3.5" />
+                  <span>Timeline</span>
+                </div>
+                <div className="text-base font-black text-slate-900 mt-0.5">
+                  {service.processing_time}
+                </div>
               </div>
             )}
           </div>
-        )}
 
-        {service.official_link && (
-          <div className="pt-2">
+          {/* Actions: WhatsApp + Portal */}
+          <div className="flex flex-col sm:flex-row gap-3 pt-2">
             <a
-              href={service.official_link}
+              href={waUrl}
               target="_blank"
               rel="noopener noreferrer"
-              className="inline-flex items-center gap-2 text-xs font-bold text-blue-600 hover:text-blue-700 bg-blue-50/60 hover:bg-blue-50 px-3.5 py-2 rounded-xl border border-blue-100 transition"
+              className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl text-xs font-black shadow-xs transition"
             >
-              <span>Visit Official Government Portal</span>
-              <ExternalLink className="w-3.5 h-3.5" />
+              <MessageCircle className="w-4 h-4" />
+              <span>Apply via WhatsApp Help</span>
             </a>
+
+            {service.official_link && (
+              <a
+                href={service.official_link}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center justify-center gap-2 px-5 py-3.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-2xl text-xs font-bold transition"
+              >
+                <span>Official Portal</span>
+                <ExternalLink className="w-4 h-4" />
+              </a>
+            )}
+          </div>
+        </div>
+
+        {/* Custom Disclaimer Alert */}
+        {(service.custom_disclaimer || service.disclaimer) && (
+          <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex items-start gap-3 text-amber-900 shadow-xs">
+            <AlertTriangle className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
+            <div className="text-xs space-y-1">
+              <span className="font-bold">Important Notice:</span>
+              <p className="text-amber-800 leading-relaxed">
+                {service.custom_disclaimer || service.disclaimer}
+              </p>
+            </div>
+          </div>
+        )}
+
+        {/* Required Documents Section */}
+        {displayDocs.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+            <div className="flex items-center gap-2">
+              <FileText className="w-5 h-5 text-blue-600" />
+              <h2 className="text-base font-black text-slate-900">
+                Required Documents Checklist
+              </h2>
+            </div>
+            
+            <div className="divide-y divide-slate-100">
+              {displayDocs.map((doc: { id?: string; document_name: string; is_mandatory?: boolean; description?: string }, idx: number) => (
+                <div key={idx} className="py-3 flex items-start gap-3">
+                  <div className="w-5 h-5 rounded-full bg-blue-50 text-blue-600 flex items-center justify-center shrink-0 mt-0.5">
+                    <Check className="w-3.5 h-3.5" />
+                  </div>
+                  <div>
+                    <div className="text-xs font-bold text-slate-900 flex items-center gap-2">
+                      <span>{doc.document_name}</span>
+                      {doc.is_mandatory && (
+                        <span className="text-[10px] px-2 py-0.5 bg-rose-50 text-rose-600 font-semibold rounded-md">
+                          Mandatory
+                        </span>
+                      )}
+                    </div>
+                    {doc.description && (
+                      <p className="text-[11px] text-slate-500 mt-0.5 font-medium">{doc.description}</p>
+                    )}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Full Details & Instructions */}
+        {service.full_description && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-3 shadow-xs">
+            <h2 className="text-base font-black text-slate-900">
+              Application Details & Eligibility
+            </h2>
+            <div className="text-xs text-slate-600 whitespace-pre-line leading-relaxed font-medium">
+              {service.full_description}
+            </div>
+          </div>
+        )}
+
+        {/* Uploaded Flyers & Posters */}
+        {displayImages.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 space-y-4 shadow-xs">
+            <h2 className="text-base font-black text-slate-900">
+              Official Posters & Guidelines
+            </h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {displayImages.map((img: { id?: string; image_url: string; alt_text?: string }, idx: number) => (
+                <div key={idx} className="rounded-2xl overflow-hidden border border-slate-200 bg-slate-50">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.image_url}
+                    alt={img.alt_text || displayName}
+                    className="w-full h-auto object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
       </div>
-
-      {/* Full Description & Guidelines */}
-      {service.full_description && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4 shadow-xs">
-          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-            Application Details & Guidelines
-          </h2>
-          <div className="text-xs sm:text-sm text-slate-600 leading-relaxed whitespace-pre-line">
-            {service.full_description}
-          </div>
-        </div>
-      )}
-
-      {/* Interactive Required Documents Section */}
-      <ServiceChecklistSection serviceName={service.name} documents={documents} />
-
-      {/* Service Posters & Image References */}
-      {images.length > 0 && (
-        <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-4 shadow-xs">
-          <div className="flex items-center gap-2">
-            <ImageIcon className="w-4 h-4 text-slate-400" />
-            <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">
-              Official Posters & Notifications
-            </h2>
-          </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 pt-2">
-            {images.map((img, idx) => (
-              <div
-                key={img.id || idx}
-                className="overflow-hidden rounded-2xl border border-slate-200 bg-slate-50 group"
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={img.image_url}
-                  alt={img.alt_text || service.name}
-                  className="w-full aspect-video object-cover group-hover:scale-105 transition duration-300"
-                />
-                {img.alt_text && (
-                  <p className="p-2.5 text-[11px] font-semibold text-slate-700 truncate bg-white">
-                    {img.alt_text}
-                  </p>
-                )}
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {/* Official Disclaimer */}
-      {service.disclaimer && (
-        <div className="bg-amber-50/70 border border-amber-200/80 rounded-3xl p-6 sm:p-8 flex items-start gap-3.5 text-amber-900 shadow-xs">
-          <ShieldAlert className="w-5 h-5 text-amber-600 shrink-0 mt-0.5" />
-          <div className="space-y-1">
-            <h3 className="text-xs font-bold uppercase tracking-wide">Important Note & Disclaimer</h3>
-            <p className="text-xs text-amber-800 leading-relaxed">{service.disclaimer}</p>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
