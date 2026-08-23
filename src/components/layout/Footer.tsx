@@ -1,13 +1,12 @@
 import React from 'react';
 import Link from 'next/link';
-import WebsiteQR from '@/components/WebsiteQR';
-import { ShieldCheck, Phone, Mail, Clock, MapPin, Navigation } from 'lucide-react';
+import { ShieldCheck, Phone, Mail, Clock, MapPin } from 'lucide-react';
 
 export default function Footer() {
   return (
     <footer className="bg-slate-950 text-white border-t border-slate-900 pt-16 pb-12">
       <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 space-y-12">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand Col */}
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -55,12 +54,10 @@ export default function Footer() {
               <Phone className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
               <span>+91 7090161083 / +91 7483941814</span>
             </div>
-          </div>
-
-          {/* Scannable Counter QR Code */}
-          <div className="space-y-3">
-            <h4 className="text-xs font-bold text-slate-200 uppercase tracking-wider">Scan to Mobile</h4>
-            <WebsiteQR />
+            <div className="flex items-start gap-2">
+              <Mail className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
+              <span>Shashikantkmali83@gmail.com</span>
+            </div>
           </div>
         </div>
 
