@@ -1,224 +1,153 @@
-import React from 'react';
+'use client';
+
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
-import { createClient } from '@/lib/supabase/server';
-import WebsiteQR from '@/components/WebsiteQR';
-import { 
-  FileText, 
-  FolderKanban, 
-  GraduationCap, 
-  Megaphone, 
-  Plus, 
-  ArrowRight, 
-  ExternalLink,
-  Edit
-} from 'lucide-react';
+import { createClient } from '@/lib/supabase/client';
+import { FileText, Bell, Award, ArrowUpRight, Loader2 } from 'lucide-react';
+import type { Service } from '@/lib/types';
 
-export const dynamic = 'force-dynamic';
-export const revalidate = 0;
+interface DashboardStats {
+  servicesCount: number;
+  announcementsCount: number;
+  counsellingCount: number;
+}
 
-export default async function AdminDashboardPage() {
-  const supabase = await createClient();
+export default function AdminDashboardPage() {
+  const [stats, setStats] = useState<DashboardStats>({
+    servicesCount: 0,
+    announcementsCount: 0,
+    counsellingCount: 0,
+  });
+  const [recentServices, setRecentServices] = useState<Pick<Service, 'id' | 'name' | 'status' | 'created_at'>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  const [{ count: servicesCount, data: recentServices }, { count: categoriesCount }, { count: admissionsCount }, { count: announcementsCount }] = await Promise.all([
-    supabase.from('services').select('*', { count: 'exact' }).order('created_at', { ascending: false }).limit(5),
-    supabase.from('categories').select('*', { count: 'exact', head: true }),
-    supabase.from('counselling_schedules').select('*', { count: 'exact', head: true }),
-    supabase.from('announcements').select('*', { count: 'exact', head: true }),
-  ]);
+  useEffect(() => {
+    async function loadDashboard() {
+      try {
+        setLoading(true);
+        const supabase = createClient();
 
-  const services = recentServices || [];
+        const [
+          { count: sCount, error: sErr },
+          { count: aCount, error: aErr },
+          { count: cCount, error: cErr },
+          { data: latestServices, error: lErr },
+        ] = await Promise.all([
+          supabase.from('services').select('*', { count: 'exact', head: true }),
+          supabase.from('announcements').select('*', { count: 'exact', head: true }),
+          supabase.from('counselling_events').select('*', { count: 'exact', head: true }),
+          supabase.from('services').select('id, name, status, created_at').order('created_at', { ascending: false }).limit(5),
+        ]);
+
+        if (sErr || aErr || cErr || lErr) {
+          throw new Error('Failed to load dashboard metrics');
+        }
+
+        setStats({
+          servicesCount: sCount || 0,
+          announcementsCount: aCount || 0,
+          counsellingCount: cCount || 0,
+        });
+
+        setRecentServices((latestServices as Pick<Service, 'id' | 'name' | 'status' | 'created_at'>[]) || []);
+      } catch (err: unknown) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch dashboard data');
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    loadDashboard();
+  }, []);
 
   return (
     <div className="space-y-8">
-      {/* Top Banner */}
-      <div className="bg-slate-900 rounded-3xl p-6 sm:p-8 text-white flex flex-col md:flex-row md:items-center justify-between gap-6">
-        <div className="space-y-2">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/20 text-blue-300 rounded-full text-[11px] font-bold">
-            <span>OPERATOR CONTROL CENTER</span>
-          </div>
-          <h1 className="text-2xl font-black tracking-tight">Sparsha Cyber Cafe Management Desk</h1>
-          <p className="text-xs text-slate-400 max-w-xl">
-            Aland taluk service directory, application checklists, and live flash banners.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <Link
-            href="/admin/services/new"
-            className="px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-2 shadow-lg"
-          >
-            <Plus className="w-4 h-4" />
-            <span>Add New Service</span>
-          </Link>
-          <Link
-            href="/"
-            target="_blank"
-            className="px-4 py-2.5 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center gap-2"
-          >
-            <span>View Live Site</span>
-            <ExternalLink className="w-3.5 h-3.5" />
-          </Link>
-        </div>
+      <div>
+        <h1 className="text-2xl font-black text-slate-900">Admin Control Center</h1>
+        <p className="text-xs text-slate-500 mt-1">Overview of cyber cafe operations, live services, and updates.</p>
       </div>
 
-      {/* Metrics Row */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Live Catalog</span>
-            <p className="text-2xl font-black text-slate-900 mt-1">{servicesCount || services.length || 0}</p>
-            <span className="text-[11px] text-slate-500">Active Schemes & Services</span>
-          </div>
-          <div className="w-10 h-10 bg-blue-50 text-blue-600 rounded-2xl flex items-center justify-center">
-            <FileText className="w-5 h-5" />
-          </div>
+      {error && (
+        <div className="p-4 bg-rose-50 border border-rose-200 rounded-2xl text-xs text-rose-700">
+          {error}
         </div>
+      )}
 
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Categories</span>
-            <p className="text-2xl font-black text-slate-900 mt-1">{categoriesCount || 6}</p>
-            <span className="text-[11px] text-slate-500">Organized Departments</span>
-          </div>
-          <div className="w-10 h-10 bg-amber-50 text-amber-600 rounded-2xl flex items-center justify-center">
-            <FolderKanban className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Admissions</span>
-            <p className="text-2xl font-black text-slate-900 mt-1">{admissionsCount || 0}</p>
-            <span className="text-[11px] text-slate-500">KCET / NEET Schedules</span>
-          </div>
-          <div className="w-10 h-10 bg-purple-50 text-purple-600 rounded-2xl flex items-center justify-center">
-            <GraduationCap className="w-5 h-5" />
-          </div>
-        </div>
-
-        <div className="bg-white p-5 rounded-3xl border border-slate-200 shadow-sm flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Broadcasts</span>
-            <p className="text-2xl font-black text-slate-900 mt-1">{announcementsCount || 0}</p>
-            <span className="text-[11px] text-slate-500">Flash Alert Notices</span>
-          </div>
-          <div className="w-10 h-10 bg-rose-50 text-rose-600 rounded-2xl flex items-center justify-center">
-            <Megaphone className="w-5 h-5" />
-          </div>
-        </div>
-      </div>
-
-      {/* Two Column Grid: Operations & Services */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
-          <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Quick Operations</h2>
-          <div className="space-y-2.5">
-            <Link
-              href="/admin/services/new"
-              className="w-full p-3.5 bg-slate-50 hover:bg-blue-50/50 border border-slate-200 hover:border-blue-200 rounded-2xl transition flex items-center justify-between group"
-            >
-              <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition">
-                Publish New Government Application
-              </span>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition" />
-            </Link>
-
-            <Link
-              href="/admin/announcements"
-              className="w-full p-3.5 bg-slate-50 hover:bg-blue-50/50 border border-slate-200 hover:border-blue-200 rounded-2xl transition flex items-center justify-between group"
-            >
-              <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition">
-                Broadcast Flash Notice / Deadline Alert
-              </span>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition" />
-            </Link>
-
-            <Link
-              href="/admin/counselling"
-              className="w-full p-3.5 bg-slate-50 hover:bg-blue-50/50 border border-slate-200 hover:border-blue-200 rounded-2xl transition flex items-center justify-between group"
-            >
-              <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition">
-                Update KCET / NEET Option Entry Dates
-              </span>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition" />
-            </Link>
-
-            <Link
-              href="/admin/services"
-              className="w-full p-3.5 bg-slate-50 hover:bg-blue-50/50 border border-slate-200 hover:border-blue-200 rounded-2xl transition flex items-center justify-between group"
-            >
-              <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition">
-                Manage & Edit Published Services
-              </span>
-              <ArrowRight className="w-4 h-4 text-slate-400 group-hover:text-blue-600 transition" />
-            </Link>
-          </div>
-        </div>
-
-        <div className="bg-white p-6 rounded-3xl border border-slate-200 shadow-sm space-y-4">
+      {/* Metrics */}
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+        <div className="p-6 bg-white border border-slate-200 rounded-3xl shadow-xs">
           <div className="flex items-center justify-between">
-            <div>
-              <h2 className="text-xs font-bold text-slate-700 uppercase tracking-wider">Recently Configured Services</h2>
-              <p className="text-[11px] text-slate-400 mt-0.5">Live listings visible to public visitors</p>
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Total Services</span>
+            <div className="p-2 bg-blue-50 text-blue-600 rounded-xl">
+              <FileText className="w-5 h-5" />
             </div>
-            <Link href="/admin/services" className="text-xs font-bold text-blue-600 hover:underline">
-              View All ({servicesCount || services.length})
-            </Link>
           </div>
+          <div className="text-3xl font-black text-slate-900 mt-4">
+            {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-300" /> : stats.servicesCount}
+          </div>
+        </div>
 
-          {services.length === 0 ? (
-            <div className="py-12 text-center text-slate-400 text-xs font-medium">
-              No services registered yet.
+        <div className="p-6 bg-white border border-slate-200 rounded-3xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Announcements</span>
+            <div className="p-2 bg-amber-50 text-amber-600 rounded-xl">
+              <Bell className="w-5 h-5" />
             </div>
-          ) : (
-            <div className="space-y-3">
-              {services.map((svc: any) => {
-                const title = svc.title || svc.name || 'Untitled Service';
-                const cat = svc.category || 'General';
-                return (
-                  <div
-                    key={svc.id}
-                    className="p-3.5 bg-slate-50 border border-slate-100 rounded-2xl flex items-center justify-between hover:bg-white hover:border-slate-200 hover:shadow-xs transition"
-                  >
-                    <div className="space-y-1">
-                      <p className="text-xs font-bold text-slate-900">{title}</p>
-                      <span className="inline-block text-[10px] font-semibold text-slate-500 bg-white px-2 py-0.5 rounded-md border border-slate-200/60">
-                        {cat}
-                      </span>
-                    </div>
+          </div>
+          <div className="text-3xl font-black text-slate-900 mt-4">
+            {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-300" /> : stats.announcementsCount}
+          </div>
+        </div>
 
-                    <Link
-                      href={`/admin/services/${svc.id}/edit`}
-                      className="p-2 text-slate-500 hover:text-blue-600 hover:bg-blue-50 rounded-xl transition inline-flex items-center gap-1 text-xs font-semibold"
-                    >
-                      <Edit className="w-3.5 h-3.5" />
-                      <span>Edit</span>
-                    </Link>
-                  </div>
-                );
-              })}
+        <div className="p-6 bg-white border border-slate-200 rounded-3xl shadow-xs">
+          <div className="flex items-center justify-between">
+            <span className="text-xs font-bold text-slate-500 uppercase tracking-wide">Counselling Hubs</span>
+            <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl">
+              <Award className="w-5 h-5" />
             </div>
-          )}
+          </div>
+          <div className="text-3xl font-black text-slate-900 mt-4">
+            {loading ? <Loader2 className="w-6 h-6 animate-spin text-slate-300" /> : stats.counsellingCount}
+          </div>
         </div>
       </div>
 
-      {/* Private Admin Counter Standee Generator */}
-      <div className="bg-white p-6 sm:p-8 rounded-3xl border border-slate-200 shadow-sm flex flex-col md:flex-row items-center justify-between gap-6">
-        <div className="space-y-2 text-center md:text-left">
-          <span className="text-[11px] font-bold text-blue-600 uppercase tracking-wider bg-blue-50 px-3 py-1 rounded-full">
-            Operator Counter Utility
-          </span>
-          <h2 className="text-lg font-black text-slate-900">
-            Sparsha Seva Kendra Desk Standee Generator
-          </h2>
-          <p className="text-xs text-slate-500 max-w-lg leading-relaxed">
-            Download the high-resolution QR image below to print and laminate for your cafe counter. Customers scanning this QR will instantly load your public seva catalog on their mobile phones.
-          </p>
+      {/* Recent Services List */}
+      <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+        <div className="flex items-center justify-between">
+          <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wide">Recent Service Catalog Updates</h2>
+          <Link href="/admin/services" className="text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+            <span>View All</span>
+            <ArrowUpRight className="w-3.5 h-3.5" />
+          </Link>
         </div>
 
-        <div className="shrink-0">
-          <WebsiteQR />
-        </div>
+        {loading ? (
+          <div className="py-8 flex justify-center text-slate-300">
+            <Loader2 className="w-6 h-6 animate-spin" />
+          </div>
+        ) : recentServices.length === 0 ? (
+          <p className="text-xs text-slate-400">No services created yet.</p>
+        ) : (
+          <div className="divide-y divide-slate-100 text-xs">
+            {recentServices.map((svc) => (
+              <div key={svc.id} className="py-3 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-slate-800">{svc.name}</div>
+                  <div className="text-[11px] text-slate-400">
+                    {new Date(svc.created_at).toLocaleDateString()}
+                  </div>
+                </div>
+                <span className={`px-2 py-0.5 rounded-md text-[10px] font-bold ${
+                  svc.status === 'Active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-600'
+                }`}>
+                  {svc.status}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
