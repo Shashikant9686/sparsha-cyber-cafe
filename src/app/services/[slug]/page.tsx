@@ -3,6 +3,7 @@ import { notFound } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createStaticClient } from '@/lib/supabase/static';
 import ServiceDetailClient from '@/components/services/ServiceDetailClient';
+import { RequiredDocument, ServiceImage } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
@@ -56,7 +57,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     const supabase = await createClient();
     const { data: service } = await supabase
       .from('services')
-      .select('name, fee, service_charge, estimated_days, prerequisites, steps, category_id')
+      .select('name, fee, service_charge, processing_time, prerequisites, steps, category_id')
       .ilike('slug', slug)
       .maybeSingle();
 
@@ -185,11 +186,11 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   }
 
   // 3. Fetch required documents
-  let requiredDocuments: any[] = [];
+  let requiredDocuments: RequiredDocument[] = [];
   try {
     const { data: docs } = await supabase
       .from('required_documents')
-      .select('id, service_id, document_name, is_mandatory, notes, display_order')
+      .select('id, service_id, document_name, is_mandatory, description, display_order')
       .eq('service_id', service.id)
       .order('display_order', { ascending: true });
     requiredDocuments = docs || [];
@@ -198,11 +199,11 @@ export default async function ServiceDetailPage({ params }: PageProps) {
   }
 
   // 4. Fetch service sample images
-  let serviceImages: any[] = [];
+  let serviceImages: ServiceImage[] = [];
   try {
     const { data: imgs } = await supabase
       .from('service_images')
-      .select('id, service_id, image_url, caption, display_order')
+      .select('id, service_id, image_url, alt_text, display_order')
       .eq('service_id', service.id)
       .order('display_order', { ascending: true });
     serviceImages = imgs || [];

@@ -15,9 +15,10 @@ import {
   AlertCircle
 } from 'lucide-react';
 import WhatsAppChecklistModal from '@/components/WhatsAppChecklistModal';
+import { ServiceDetailData, RequiredDocument } from '@/lib/types';
 
 interface ServiceDetailProps {
-  service: any;
+  service: ServiceDetailData;
 }
 
 export default function ServiceDetailClient({ service }: ServiceDetailProps) {
@@ -44,7 +45,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
 
   let faqs: Array<{ question: string; answer: string }> = [];
   if (Array.isArray(service.faq)) {
-    faqs = service.faq;
+    faqs = service.faq as Array<{ question: string; answer: string }>;
   } else if (typeof service.faq === 'string') {
     try {
       faqs = JSON.parse(service.faq);
@@ -101,7 +102,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
               <div>
                 <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Processing Time</p>
                 <p className="text-sm font-extrabold text-slate-800">
-                  {service.estimated_days || '7 - 15 Days'}
+                  {service.processing_time || '7 - 15 Days'}
                 </p>
               </div>
             </div>
@@ -161,7 +162,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
           </div>
 
           <div className="divide-y divide-slate-100">
-            {docs.map((doc: any, index: number) => (
+            {docs.map((doc: RequiredDocument, index: number) => (
               <div key={doc.id || index} className="py-3.5 flex items-start justify-between gap-4">
                 <div className="flex items-start gap-3">
                   <CheckCircle2 className="w-4 h-4 text-emerald-600 mt-0.5 shrink-0" />
@@ -169,9 +170,9 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
                     <p className="text-xs font-bold text-slate-800">
                       {doc.document_name || 'Document'}
                     </p>
-                    {doc.notes && (
+                    {doc.description && (
                       <p className="text-[11px] text-slate-500 mt-0.5">
-                        {doc.notes}
+                        {doc.description}
                       </p>
                     )}
                   </div>
@@ -203,6 +204,25 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
             <p className="text-xs text-slate-600 leading-relaxed whitespace-pre-line">
               {service.prerequisites}
             </p>
+          </div>
+        )}
+
+        {/* Sample Images / Posters */}
+        {Array.isArray(service.service_images) && service.service_images.length > 0 && (
+          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
+            <h2 className="text-lg font-bold text-slate-900">Sample Images</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {service.service_images.map((img) => (
+                <div key={img.id} className="rounded-xl overflow-hidden border border-slate-200 aspect-square">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={img.image_url}
+                    alt={img.alt_text || service.name}
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ))}
+            </div>
           </div>
         )}
 
