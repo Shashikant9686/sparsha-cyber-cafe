@@ -19,6 +19,7 @@ import {
   Image as ImageIcon
 } from 'lucide-react';
 import Link from 'next/link';
+import ImageUploader from './ImageUploader';
 
 interface CategoryOption {
   id: string;
@@ -191,11 +192,6 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
 
   const removeFaqItem = (index: number) => {
     setFaqs((prev) => prev.filter((_, i) => i !== index));
-  };
-
-  // Image Helpers
-  const addImageItem = () => {
-    setImages((prev) => [...prev, { image_url: '', caption: '', display_order: prev.length + 1 }]);
   };
 
   const updateImageItem = (index: number, field: keyof ServiceImageItem, value: unknown) => {
@@ -726,15 +722,15 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
               <h2 className="text-sm font-bold text-slate-900 uppercase tracking-wider">Attached Images & Samples</h2>
               <p className="text-xs text-slate-500">Provide sample certificate formats or illustrative screenshots</p>
             </div>
-            <button
-              type="button"
-              onClick={addImageItem}
-              className="inline-flex items-center gap-1.5 px-3 py-1.5 bg-blue-50 text-blue-700 hover:bg-blue-100 rounded-xl text-xs font-bold transition cursor-pointer"
-            >
-              <Plus className="w-4 h-4" />
-              <span>Add Image</span>
-            </button>
           </div>
+
+          <ImageUploader
+            bucketName="service-images"
+            folderPath="services"
+            onUploadSuccess={(uploaded) => {
+              setImages((prev) => [...prev, { image_url: uploaded.url, caption: '', display_order: prev.length + 1 }]);
+            }}
+          />
 
           <div className="space-y-3 pt-2">
             {images.map((img, idx) => (
