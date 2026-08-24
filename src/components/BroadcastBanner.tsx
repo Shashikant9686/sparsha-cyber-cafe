@@ -8,10 +8,9 @@ import { createClient } from '@/lib/supabase/client';
 interface Announcement {
   id: string;
   title: string;
-  content: string;
-  type: 'urgent' | 'info' | 'ticker';
-  link_url?: string;
-  is_active: boolean;
+  description: string | null;
+  official_link: string | null;
+  status: string;
 }
 
 export default function BroadcastBanner() {
@@ -25,36 +24,21 @@ export default function BroadcastBanner() {
         const supabase = createClient();
         const { data, error } = await supabase
           .from('announcements')
-          .select('*')
-          .eq('is_active', true)
+          .select('id, title, description, official_link, status')
+          .eq('status', 'active')
+          .order('featured', { ascending: false })
           .order('created_at', { ascending: false });
 
-        if (error || !data || data.length === 0) {
-          // Fallback static announcement if table is not yet populated
-          setAnnouncements([
-            {
-              id: 'fallback-1',
-              title: 'KCET / NEET Option Entry 2026',
-              content: 'Document verification & choice filling desk is active at Sparsha Cyber Cafe.',
-              type: 'ticker',
-              link_url: '/counselling',
-              is_active: true,
-            },
-          ]);
-        } else {
-          setAnnouncements(data);
+        if (error) {
+          console.error('Failed to load announcements:', error);
+          setAnnouncements([]);
+          return;
         }
-      } catch {
-        setAnnouncements([
-          {
-            id: 'fallback-1',
-            title: 'KCET / NEET Option Entry 2026',
-            content: 'Document verification & choice filling desk is active at Sparsha Cyber Cafe.',
-            type: 'ticker',
-            link_url: '/counselling',
-            is_active: true,
-          },
-        ]);
+
+        setAnnouncements(data || []);
+      } catch (err) {
+        console.error('Failed to load announcements:', err);
+        setAnnouncements([]);
       }
     }
 
@@ -87,14 +71,16 @@ export default function BroadcastBanner() {
           </span>
           <div className="truncate font-medium flex items-center gap-2">
             <strong className="font-bold text-white shrink-0">{current.title}:</strong>
-            <span className="text-blue-100 truncate">{current.content}</span>
+            {current.description && (
+              <span className="text-blue-100 truncate">{current.description}</span>
+            )}
           </div>
         </div>
 
         <div className="flex items-center gap-3 shrink-0">
-          {current.link_url && (
+          {current.official_link && (
             <Link
-              href={current.link_url}
+              href={current.official_link}
               className="inline-flex items-center gap-1 font-bold text-amber-300 hover:text-amber-200 underline text-xs transition"
             >
               <span>View Details</span>

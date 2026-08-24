@@ -7,10 +7,22 @@ import { Plus, Trash2, Edit3, Loader2, AlertCircle, Bell, ExternalLink } from 'l
 interface Announcement {
   id: string;
   title: string;
-  message: string;
-  link_url?: string | null;
-  is_active: boolean;
-  priority: number;
+  slug: string;
+  description: string | null;
+  image_url: string | null;
+  start_date: string | null;
+  last_date: string | null;
+  official_link: string | null;
+  status: string;
+  featured: boolean;
+}
+
+function slugify(text: string) {
+  return text
+    .toLowerCase()
+    .trim()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/(^-|-$)/g, '');
 }
 
 export default function AdminAnnouncementsPage() {
@@ -23,10 +35,14 @@ export default function AdminAnnouncementsPage() {
   // Form states
   const [editingId, setEditingId] = useState<string | null>(null);
   const [title, setTitle] = useState('');
-  const [message, setMessage] = useState('');
-  const [linkUrl, setLinkUrl] = useState('');
-  const [isActive, setIsActive] = useState(true);
-  const [priority, setPriority] = useState(1);
+  const [slug, setSlug] = useState('');
+  const [description, setDescription] = useState('');
+  const [imageUrl, setImageUrl] = useState('');
+  const [officialLink, setOfficialLink] = useState('');
+  const [status, setStatus] = useState('active');
+  const [featured, setFeatured] = useState(false);
+  const [startDate, setStartDate] = useState('');
+  const [lastDate, setLastDate] = useState('');
   const [saving, setSaving] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
@@ -41,7 +57,7 @@ export default function AdminAnnouncementsPage() {
         const { data, error } = await supabase
           .from('announcements')
           .select('*')
-          .order('priority', { ascending: false });
+          .order('created_at', { ascending: false });
 
         if (error) throw error;
         if (isMounted) {
@@ -68,8 +84,8 @@ export default function AdminAnnouncementsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!title.trim() || !message.trim()) {
-      setErrorMsg('Title and message are required');
+    if (!title.trim()) {
+      setErrorMsg('Title is required');
       return;
     }
 
@@ -79,10 +95,14 @@ export default function AdminAnnouncementsPage() {
     try {
       const payload = {
         title: title.trim(),
-        message: message.trim(),
-        link_url: linkUrl.trim() || null,
-        is_active: isActive,
-        priority: Number(priority) || 1,
+        slug: (slug.trim() || slugify(title)),
+        description: description.trim() || null,
+        image_url: imageUrl.trim() || null,
+        official_link: officialLink.trim() || null,
+        status,
+        featured,
+        start_date: startDate || null,
+        last_date: lastDate || null,
         updated_at: new Date().toISOString()
       };
 
@@ -122,19 +142,27 @@ export default function AdminAnnouncementsPage() {
   const handleEdit = (announcement: Announcement) => {
     setEditingId(announcement.id);
     setTitle(announcement.title);
-    setMessage(announcement.message);
-    setLinkUrl(announcement.link_url || '');
-    setIsActive(announcement.is_active);
-    setPriority(announcement.priority);
+    setSlug(announcement.slug);
+    setDescription(announcement.description || '');
+    setImageUrl(announcement.image_url || '');
+    setOfficialLink(announcement.official_link || '');
+    setStatus(announcement.status);
+    setFeatured(announcement.featured);
+    setStartDate(announcement.start_date || '');
+    setLastDate(announcement.last_date || '');
   };
 
   const handleCancel = () => {
     setEditingId(null);
     setTitle('');
-    setMessage('');
-    setLinkUrl('');
-    setIsActive(true);
-    setPriority(1);
+    setSlug('');
+    setDescription('');
+    setImageUrl('');
+    setOfficialLink('');
+    setStatus('active');
+    setFeatured(false);
+    setStartDate('');
+    setLastDate('');
   };
 
   const handleDelete = async (id: string) => {
@@ -191,24 +219,68 @@ export default function AdminAnnouncementsPage() {
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Action Link URL (Optional)</label>
+            <label className="text-xs font-bold text-slate-700">Official Link (Optional)</label>
             <input
               type="url"
-              value={linkUrl}
-              onChange={(e) => setLinkUrl(e.target.value)}
+              value={officialLink}
+              onChange={(e) => setOfficialLink(e.target.value)}
               placeholder="https://... or /services/slug"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
             />
           </div>
 
           <div className="space-y-1 sm:col-span-2">
-            <label className="text-xs font-bold text-slate-700">Message Summary *</label>
+            <label className="text-xs font-bold text-slate-700">Description</label>
             <textarea
               rows={2}
-              required
-              value={message}
-              onChange={(e) => setMessage(e.target.value)}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
               placeholder="Full ticker notice displayed on the top banner..."
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">Poster / Image URL (Optional)</label>
+            <input
+              type="url"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="https://..."
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">Status</label>
+            <select
+              value={status}
+              onChange={(e) => setStatus(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+            >
+              <option value="active">Active</option>
+              <option value="upcoming">Upcoming</option>
+              <option value="expired">Expired</option>
+              <option value="hidden">Hidden</option>
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">Start Date (Optional)</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => setStartDate(e.target.value)}
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">Last Date (Optional)</label>
+            <input
+              type="date"
+              value={lastDate}
+              onChange={(e) => setLastDate(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
             />
           </div>
@@ -217,22 +289,12 @@ export default function AdminAnnouncementsPage() {
             <label className="flex items-center gap-2 text-xs font-bold text-slate-700 cursor-pointer">
               <input
                 type="checkbox"
-                checked={isActive}
-                onChange={(e) => setIsActive(e.target.checked)}
+                checked={featured}
+                onChange={(e) => setFeatured(e.target.checked)}
                 className="w-4 h-4 text-blue-600 rounded-sm border-slate-300"
               />
-              <span>Banner Active</span>
+              <span>Featured</span>
             </label>
-
-            <div className="flex items-center gap-2 text-xs">
-              <span className="font-bold text-slate-700">Priority:</span>
-              <input
-                type="number"
-                value={priority}
-                onChange={(e) => setPriority(Number(e.target.value))}
-                className="w-16 px-2 py-1 bg-slate-50 border border-slate-200 rounded-lg text-xs font-medium"
-              />
-            </div>
           </div>
         </div>
 
@@ -281,21 +343,24 @@ export default function AdminAnnouncementsPage() {
                       <span className="text-xs font-bold text-slate-900">{item.title}</span>
                       <span
                         className={`text-[10px] px-2 py-0.5 rounded-md font-bold capitalize ${
-                          item.is_active ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+                          item.status === 'active' ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
                         }`}
                       >
-                        {item.is_active ? 'Active' : 'Disabled'}
+                        {item.status}
                       </span>
                     </div>
-                    <p className="text-xs text-slate-600 mt-1">{item.message}</p>
-                    {item.link_url && (
-                      <a
-                        href={item.link_url}
+                    {item.description && (
+                      <p className="text-xs text-slate-600 mt-1">{item.description}</p>
+                    )}
+                    {item.official_link && (
+                        <a
+                      
+                        href={item.official_link}
                         target="_blank"
                         rel="noreferrer"
                         className="inline-flex items-center gap-1 text-[11px] font-bold text-blue-600 hover:underline mt-1.5"
                       >
-                        <span>{item.link_url}</span>
+                        <span>{item.official_link}</span>
                         <ExternalLink className="w-3 h-3" />
                       </a>
                     )}
