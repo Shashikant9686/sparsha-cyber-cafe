@@ -39,7 +39,7 @@ export default function AdminNav({ userEmail }: AdminNavProps) {
   };
 
   return (
-    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col min-h-screen text-slate-300 shrink-0">
+    <aside className="w-64 bg-slate-900 border-r border-slate-800 flex flex-col md:min-h-screen text-slate-300 shrink-0">
       {/* Brand Header */}
       <div className="p-6 border-b border-slate-800">
         <h2 className="text-sm font-black text-white tracking-tight uppercase">

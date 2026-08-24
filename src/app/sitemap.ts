@@ -2,13 +2,13 @@ import { MetadataRoute } from 'next';
 import { createClient } from '@/lib/supabase/server';
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'http://localhost:3002';
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sparsha-cyber-cafe.vercel.app';
   const supabase = await createClient();
 
   const { data: services } = await supabase
     .from('services')
     .select('slug, updated_at')
-    .eq('status', 'Active');
+    .eq('status', 'active');
 
   const serviceRoutes: MetadataRoute.Sitemap = (services || []).map((service) => ({
     url: `${baseUrl}/services/${service.slug}`,

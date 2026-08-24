@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
+import { extractStoragePath } from '@/lib/storage-utils';
 import { Plus, Search, Trash2, Edit3, ExternalLink, Loader2, AlertCircle, Eye, EyeOff } from 'lucide-react';
 
 interface ServiceRecord {
@@ -81,6 +82,12 @@ export default function AdminServicesPage() {
 
     try {
       setDeletingId(id);
+
+      const { data: imagesToClean } = await supabase
+        .from('service_images')
+        .select('image_url')
+        .eq('service_id', id);
+
       await supabase.from('required_documents').delete().eq('service_id', id);
       await supabase.from('service_images').delete().eq('service_id', id);
 
@@ -88,6 +95,18 @@ export default function AdminServicesPage() {
       if (error) throw error;
 
       setServices((prev) => prev.filter((s) => s.id !== id));
+
+      if (imagesToClean && imagesToClean.length > 0) {
+        const paths = imagesToClean
+          .map((img) => extractStoragePath(img.image_url, 'service-images'))
+          .filter((p): p is string => p !== null);
+        if (paths.length > 0) {
+          const { error: storageError } = await supabase.storage.from('service-images').remove(paths);
+          if (storageError) {
+            console.error('Failed to remove some storage files (non-blocking):', storageError);
+          }
+        }
+      }
     } catch (err: unknown) {
       console.error('Failed to delete service:', err);
       alert(err instanceof Error ? err.message : 'Failed to delete service');

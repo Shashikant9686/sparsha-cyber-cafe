@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
+import { extractStoragePath } from '@/lib/storage-utils';
 import { 
   ArrowLeft, 
   Save, 
@@ -194,6 +195,9 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
     setFaqs((prev) => prev.filter((_, i) => i !== index));
   };
 
+  // Image Helpers
+
+
   const updateImageItem = (index: number, field: keyof ServiceImageItem, value: unknown) => {
     setImages((prev) => {
       const next = [...prev];
@@ -202,8 +206,19 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
     });
   };
 
-  const removeImageItem = (index: number) => {
+  const removeImageItem = async (index: number) => {
+    const target = images[index];
     setImages((prev) => prev.filter((_, i) => i !== index));
+
+    if (target?.image_url) {
+      const path = extractStoragePath(target.image_url, 'service-images');
+      if (path) {
+        const { error } = await supabase.storage.from('service-images').remove([path]);
+        if (error) {
+          console.error('Failed to remove storage file (non-blocking):', error);
+        }
+      }
+    }
   };
 
   // Form Submit Handler

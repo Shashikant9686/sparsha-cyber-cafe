@@ -29,15 +29,31 @@ export default function ImageUploader({
   const [uploading, setUploading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
+  const ALLOWED_TYPES = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+  const MAX_SIZE_BYTES = 5 * 1024 * 1024; // 5MB, matches the Storage bucket's own limit
+
   const handleFileChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const files = e.target.files;
     if (!files || files.length === 0) return;
+
+    const file: File = files[0];
+
+    if (!ALLOWED_TYPES.includes(file.type)) {
+      setErrorMessage('Only JPEG, PNG, or WebP images are allowed.');
+      e.target.value = '';
+      return;
+    }
+
+    if (file.size > MAX_SIZE_BYTES) {
+      setErrorMessage(`Image is too large (${(file.size / (1024 * 1024)).toFixed(1)}MB). Maximum size is 5MB.`);
+      e.target.value = '';
+      return;
+    }
 
     setUploading(true);
     setErrorMessage(null);
 
     try {
-      const file: File = files[0];
       const fileExt = file.name.split('.').pop();
       const fileName = `${Date.now()}-${Math.random().toString(36).substring(2, 9)}.${fileExt}`;
       const filePath = `${folderPath}/${fileName}`;
