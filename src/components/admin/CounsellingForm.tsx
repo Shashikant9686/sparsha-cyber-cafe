@@ -25,11 +25,11 @@ export interface EventDateItem {
 export interface CounsellingEventFormData {
   id?: string;
   service_id?: string | null;
-  exam_type: string;
-  title: string;
-  academic_year: string;
+  exam_name: string;
+  counselling_name: string;
+  year: number;
   description?: string | null;
-  official_portal_url?: string | null;
+  official_link?: string | null;
   status: string;
   event_dates?: EventDateItem[];
 }
@@ -39,7 +39,7 @@ interface CounsellingFormProps {
   eventId?: string;
 }
 
-const COMMON_EXAM_TYPES = [
+const COMMON_EXAM_NAMES = [
   'KCET',
   'JEE Main',
   'JEE Advanced',
@@ -53,6 +53,8 @@ const COMMON_EXAM_TYPES = [
   'Scholarships'
 ];
 
+const CURRENT_YEAR = new Date().getFullYear();
+
 export default function CounsellingForm({ initialData, eventId }: CounsellingFormProps) {
   const router = useRouter();
   const supabase = createClient();
@@ -60,15 +62,15 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  // Canonical counselling_events fields
-  const [title, setTitle] = useState(initialData?.title || '');
-  const [examType, setExamType] = useState(initialData?.exam_type || 'KCET');
-  const [academicYear, setAcademicYear] = useState(initialData?.academic_year || '2026-27');
+  // Canonical counselling_events fields (matching the verified live schema)
+  const [counsellingName, setCounsellingName] = useState(initialData?.counselling_name || '');
+  const [examName, setExamName] = useState(initialData?.exam_name || 'KCET');
+  const [year, setYear] = useState(initialData?.year ? String(initialData.year) : String(CURRENT_YEAR));
   const [description, setDescription] = useState(initialData?.description || '');
-  const [officialPortalUrl, setOfficialPortalUrl] = useState(initialData?.official_portal_url || '');
+  const [officialLink, setOfficialLink] = useState(initialData?.official_link || '');
   const [status, setStatus] = useState(initialData?.status || 'Active');
 
-  // Dynamic event_dates list
+  // Dynamic event_dates list (unchanged — event_dates.title is a real, correctly-named column)
   const [dates, setDates] = useState<EventDateItem[]>(
     initialData?.event_dates && initialData.event_dates.length > 0
       ? initialData.event_dates.map((d, index) => ({
@@ -107,12 +109,17 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setErrorMsg('Event title is required');
+    if (!counsellingName.trim()) {
+      setErrorMsg('Counselling name is required');
       return;
     }
-    if (!examType.trim()) {
-      setErrorMsg('Exam type is required');
+    if (!examName.trim()) {
+      setErrorMsg('Exam name is required');
+      return;
+    }
+    const yearNumber = parseInt(year, 10);
+    if (!Number.isInteger(yearNumber) || yearNumber < 2000 || yearNumber > 2100) {
+      setErrorMsg('Please enter a valid 4-digit year (e.g. 2026)');
       return;
     }
 
@@ -121,11 +128,11 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
 
     try {
       const eventPayload = {
-        title: title.trim(),
-        exam_type: examType.trim(),
-        academic_year: academicYear.trim() || '2026-27',
+        counselling_name: counsellingName.trim(),
+        exam_name: examName.trim(),
+        year: yearNumber,
         description: description.trim() || null,
-        official_portal_url: officialPortalUrl.trim() || null,
+        official_link: officialLink.trim() || null,
         status,
         updated_at: new Date().toISOString()
       };
@@ -234,42 +241,45 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div className="space-y-1 sm:col-span-2">
-            <label className="text-xs font-bold text-slate-700">Event Title *</label>
+            <label className="text-xs font-bold text-slate-700">Counselling Name *</label>
             <input
               type="text"
               required
-              value={title}
-              onChange={(e) => setTitle(e.target.value)}
-              placeholder="e.g. KCET 2026 Engineering Option Entry & Verification"
+              value={counsellingName}
+              onChange={(e) => setCounsellingName(e.target.value)}
+              placeholder="e.g. Engineering Option Entry & Verification"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
             />
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Exam / Category Type *</label>
+            <label className="text-xs font-bold text-slate-700">Exam Name *</label>
             <input
               type="text"
               required
-              list="exam-types-list"
-              value={examType}
-              onChange={(e) => setExamType(e.target.value)}
+              list="exam-names-list"
+              value={examName}
+              onChange={(e) => setExamName(e.target.value)}
               placeholder="Type or select exam (e.g. KCET, NEET UG)"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
             />
-            <datalist id="exam-types-list">
-              {COMMON_EXAM_TYPES.map((type) => (
-                <option key={type} value={type} />
+            <datalist id="exam-names-list">
+              {COMMON_EXAM_NAMES.map((name) => (
+                <option key={name} value={name} />
               ))}
             </datalist>
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Academic Year</label>
+            <label className="text-xs font-bold text-slate-700">Year *</label>
             <input
-              type="text"
-              value={academicYear}
-              onChange={(e) => setAcademicYear(e.target.value)}
-              placeholder="2026-27"
+              type="number"
+              required
+              min={2000}
+              max={2100}
+              value={year}
+              onChange={(e) => setYear(e.target.value)}
+              placeholder={String(CURRENT_YEAR)}
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
             />
           </div>
@@ -290,11 +300,11 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
           </div>
 
           <div className="space-y-1">
-            <label className="text-xs font-bold text-slate-700">Official Portal URL</label>
+            <label className="text-xs font-bold text-slate-700">Official Link</label>
             <input
               type="url"
-              value={officialPortalUrl}
-              onChange={(e) => setOfficialPortalUrl(e.target.value)}
+              value={officialLink}
+              onChange={(e) => setOfficialLink(e.target.value)}
               placeholder="https://cetonline.karnataka.gov.in/kea/"
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
             />

@@ -40,14 +40,14 @@ export default async function CounsellingPage() {
           >
             <div className="flex items-center justify-between">
               <span className="text-xs font-bold px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg">
-                {event.exam_type} ({event.academic_year})
+                {event.exam_name} ({event.year})
               </span>
               <span className="text-xs font-semibold px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md">
                 {event.status}
               </span>
             </div>
 
-            <h2 className="text-lg font-bold text-slate-900">{event.title}</h2>
+            <h2 className="text-lg font-bold text-slate-900">{event.counselling_name}</h2>
             {event.description && (
               <p className="text-xs text-slate-600">{event.description}</p>
             )}
@@ -69,9 +69,9 @@ export default async function CounsellingPage() {
               </div>
             )}
 
-            {event.official_portal_url && (
+            {event.official_link && (
               <a
-                href={event.official_portal_url}
+                href={event.official_link}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 pt-2"

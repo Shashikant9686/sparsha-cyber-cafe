@@ -7,10 +7,10 @@ import { Plus, Search, Trash2, Edit3, Loader2, AlertCircle, ExternalLink } from 
 
 interface CounsellingEventItem {
   id: string;
-  title: string;
-  exam_type: string;
-  academic_year: string;
-  official_portal_url: string | null;
+  counselling_name: string;
+  exam_name: string;
+  year: number;
+  official_link: string | null;
   status: string;
 }
 
@@ -33,7 +33,7 @@ export default function AdminCounsellingPage() {
 
         const { data, error } = await supabase
           .from('counselling_events')
-          .select('id, title, exam_type, academic_year, official_portal_url, status')
+          .select('id, counselling_name, exam_name, year, official_link, status')
           .order('created_at', { ascending: false });
 
         if (error) throw error;
@@ -59,8 +59,8 @@ export default function AdminCounsellingPage() {
     };
   }, [supabase]);
 
-  const handleDelete = async (id: string, title: string) => {
-    if (!window.confirm(`Are you sure you want to delete "${title}"?`)) return;
+  const handleDelete = async (id: string, counsellingName: string) => {
+    if (!window.confirm(`Are you sure you want to delete "${counsellingName}"?`)) return;
 
     try {
       setDeletingId(id);
@@ -80,9 +80,9 @@ export default function AdminCounsellingPage() {
   };
 
   const filtered = events.filter((e) =>
-    e.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.exam_type.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    e.academic_year.toLowerCase().includes(searchTerm.toLowerCase())
+    e.counselling_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    e.exam_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    String(e.year).includes(searchTerm)
   );
 
   return (
@@ -117,7 +117,7 @@ export default function AdminCounsellingPage() {
         <Search className="w-4 h-4 text-slate-400 absolute left-3.5 top-1/2 -translate-y-1/2" />
         <input
           type="text"
-          placeholder="Search by title, exam type (KCET, NEET), or year..."
+          placeholder="Search by counselling name, exam name (KCET, NEET), or year..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
           className="w-full pl-9 pr-4 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden transition"
@@ -152,10 +152,10 @@ export default function AdminCounsellingPage() {
                   <tr key={event.id} className="hover:bg-slate-50/70 transition">
                     <td className="py-3.5 px-4 font-bold text-slate-900">
                       <div className="flex items-center gap-2">
-                        <span>{event.title}</span>
-                        {event.official_portal_url && (
+                        <span>{event.counselling_name}</span>
+                        {event.official_link && (
                           <a
-                            href={event.official_portal_url}
+                            href={event.official_link}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="text-slate-400 hover:text-blue-600 transition"
@@ -168,11 +168,11 @@ export default function AdminCounsellingPage() {
                     </td>
                     <td className="py-3.5 px-4">
                       <span className="px-2.5 py-1 bg-amber-50 text-amber-700 rounded-lg font-bold text-[10px] uppercase tracking-wider">
-                        {event.exam_type}
+                        {event.exam_name}
                       </span>
                     </td>
                     <td className="py-3.5 px-4 font-medium text-slate-600">
-                      {event.academic_year || '—'}
+                      {event.year || '—'}
                     </td>
                     <td className="py-3.5 px-4">
                       <span
@@ -199,7 +199,7 @@ export default function AdminCounsellingPage() {
                       </Link>
                       <button
                         type="button"
-                        onClick={() => handleDelete(event.id, event.title)}
+                        onClick={() => handleDelete(event.id, event.counselling_name)}
                         disabled={deletingId === event.id}
                         className="inline-flex p-1.5 text-slate-500 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition cursor-pointer disabled:opacity-50"
                         title="Delete event"
