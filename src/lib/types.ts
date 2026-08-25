@@ -86,11 +86,11 @@ export interface EventDate {
 export interface CounsellingEvent {
   id: string;
   service_id?: string | null;
-  exam_type: string;
-  title: string;
-  academic_year: string;
+  exam_name: string;
+  counselling_name: string;
+  year: number;
   description?: string | null;
-  official_portal_url?: string | null;
+  official_link?: string | null;
   status: string;
   created_at?: string;
   updated_at?: string;
