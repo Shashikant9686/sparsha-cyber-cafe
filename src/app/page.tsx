@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { ArrowRight, ShieldCheck, Clock, FileCheck, HelpCircle } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Clock, FileCheck, HelpCircle, Users, MapPin, MessageCircle, ListChecks, PhoneCall, CheckCircle2 } from 'lucide-react';
 import WebsiteQR from '@/components/WebsiteQR';
 import type { Service } from '@/lib/types';
 import { BUSINESS_INFO } from '@/lib/constants';
@@ -129,6 +129,56 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
+      {/* Why Choose Us */}
+      <section className="space-y-6">
+        <div>
+          <h2 className="text-xl font-black text-slate-900">Why Choose {BUSINESS_INFO.name}</h2>
+          <p className="text-xs text-slate-500">One center for every kind of online application and document need</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[
+            { icon: Users, title: 'One-Stop Digital Center', desc: 'Government applications, land services, exams, admissions, and document work — handled in one place.' },
+            { icon: ListChecks, title: 'Checklist-Accurate Applications', desc: 'Every document is verified against the official checklist before submission.' },
+            { icon: FileCheck, title: 'Education & Counselling Support', desc: 'KCET, JEE, and NEET option-entry and counselling assistance for students and parents.' },
+            { icon: ShieldCheck, title: 'Land Service Expertise', desc: 'Bhoomi RTC, Pahani, and land-record certificate support alongside every other service.' },
+            { icon: Clock, title: 'Printing & Document Services', desc: 'Scanning, printing, lamination, and document preparation on the same visit.' },
+            { icon: MessageCircle, title: 'Easy WhatsApp Support', desc: 'Get a required-documents checklist sent straight to your phone before you visit.' },
+          ].map((item) => (
+            <div key={item.title} className="p-6 bg-white border border-slate-200 rounded-3xl shadow-xs space-y-3">
+              <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit">
+                <item.icon className="w-6 h-6" />
+              </div>
+              <h3 className="font-bold text-sm text-slate-900">{item.title}</h3>
+              <p className="text-xs text-slate-500 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* How It Works */}
+      <section className="bg-slate-900 text-white rounded-3xl p-8 sm:p-12 space-y-8">
+        <div>
+          <h2 className="text-xl font-black text-white">How It Works</h2>
+          <p className="text-xs text-slate-400">Four simple steps, every time</p>
+        </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          {[
+            { step: '1', title: 'Choose a Service', desc: 'Browse our full list of applications and certificates.' },
+            { step: '2', title: 'Check Required Documents', desc: 'View the exact checklist for your chosen service.' },
+            { step: '3', title: 'Contact or Visit', desc: 'Reach out on WhatsApp or come to the center directly.' },
+            { step: '4', title: 'Application Completed', desc: 'We handle the submission, checked and verified.' },
+          ].map((item) => (
+            <div key={item.step} className="space-y-2">
+              <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-sm">
+                {item.step}
+              </div>
+              <h3 className="font-bold text-sm text-white">{item.title}</h3>
+              <p className="text-xs text-slate-400 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
+        </div>
+      </section>
 
       {/* Quick QR Access */}
       <section className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs flex flex-col md:flex-row items-center justify-between gap-8">
