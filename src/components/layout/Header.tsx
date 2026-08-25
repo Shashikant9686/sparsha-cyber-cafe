@@ -27,7 +27,7 @@ export default function Header() {
           </div>
           <div>
             <span className="font-black text-sm sm:text-base text-slate-900 tracking-tight block leading-none">
-              SPARSHA ONLINE SEVA
+              {BUSINESS_INFO.name}
             </span>
             <span className="text-[10px] text-slate-500 font-semibold tracking-wide">
               Aland, Kalaburagi
@@ -58,7 +58,7 @@ export default function Header() {
         {/* WhatsApp Action Only */}
         <div className="flex items-center gap-2">
           <a
-            href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=Hello%20Sparsha%20Cyber%20Cafe,%20I%20have%20an%20application%20inquiry.`}
+            href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=Hello%20Sparsha%20Online%20Center,%20I%20have%20an%20application%20inquiry.`}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold shadow-sm transition"

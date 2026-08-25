@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/server';
 import { ArrowRight, ShieldCheck, Clock, FileCheck, HelpCircle } from 'lucide-react';
 import WebsiteQR from '@/components/WebsiteQR';
 import type { Service } from '@/lib/types';
+import { BUSINESS_INFO } from '@/lib/constants';
 
 export const revalidate = 60;
 
@@ -24,13 +25,16 @@ export default async function HomePage() {
         <div className="max-w-3xl space-y-6">
           <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-300 text-xs font-semibold">
             <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            Reliable Karnataka Citizen & Student Services
+            Aland&apos;s One-Stop Digital Service Center
           </div>
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
-            Fast, Verified & Transparent Online Applications.
+            {BUSINESS_INFO.name}
           </h1>
+          <p className="text-xl sm:text-2xl font-bold text-blue-300 tracking-tight">
+            {BUSINESS_INFO.tagline}
+          </p>
           <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
-            Get your government certificates, student scholarships, KCET/NEET option entry, and exam registrations completed with 100% checklist accuracy.
+            Government certificates, land services, PAN &amp; Aadhaar assistance, exam and college applications, KCET/JEE/NEET counselling, document services, and printing — all completed with verified, checklist-accurate applications.
           </p>
           <div className="flex flex-wrap gap-4 pt-2">
             <Link
@@ -68,7 +72,7 @@ export default async function HomePage() {
           </div>
           <h3 className="font-bold text-sm text-slate-900">Instant WhatsApp Checklists</h3>
           <p className="text-xs text-slate-500 leading-relaxed">
-            Send required document checklists directly to your WhatsApp before visiting the cafe.
+            Send required document checklists directly to your WhatsApp before visiting the center.
           </p>
         </div>
 
@@ -129,7 +133,7 @@ export default async function HomePage() {
       {/* Quick QR Access */}
       <section className="bg-white border border-slate-200 rounded-3xl p-8 shadow-xs flex flex-col md:flex-row items-center justify-between gap-8">
         <div className="space-y-3 max-w-lg">
-          <h3 className="text-lg font-black text-slate-900">Visit Sparsha Cyber Cafe on your mobile</h3>
+          <h3 className="text-lg font-black text-slate-900">Visit Sparsha Online Center on your mobile</h3>
           <p className="text-xs text-slate-500 leading-relaxed">
             Scan this QR code with any camera app to open our services catalog, verify documents, or share with friends and family. It&apos;s instant and requires no installation.
           </p>

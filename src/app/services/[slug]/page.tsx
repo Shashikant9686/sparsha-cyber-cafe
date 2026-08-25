@@ -7,7 +7,7 @@ import { RequiredDocument, ServiceImage } from '@/lib/types';
 
 export const dynamic = 'force-dynamic';
 
-const SITE_NAME = 'Sparsha Cyber Cafe & Online Seva Kendra';
+const SITE_NAME = 'Sparsha Online Center';
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://sparsha-cyber-cafe.vercel.app';
 const SHOP_PHONE = '+91 96861 68988';
 const SHOP_ADDRESS = 'Main Road, Near Bus Stand, Aland, Kalaburagi District, Karnataka - 585302';
@@ -49,7 +49,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     if (!slug) {
       return {
-        title: 'Service Not Found | Sparsha Online Seva',
+        title: 'Service Not Found | Sparsha Online Center',
         description: 'The requested government or online application service is not available.',
       };
     }
@@ -63,7 +63,7 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 
     if (!service) {
       return {
-        title: 'Service Not Found | Sparsha Online Seva',
+        title: 'Service Not Found | Sparsha Online Center',
         description: 'The requested government or online application service is not available.',
       };
     }
@@ -80,11 +80,11 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       }
     }
 
-    const title = `${service.name} Application & Required Documents Checklist | Sparsha Cyber Cafe`;
+    const title = `${service.name} Application & Required Documents Checklist | Sparsha Online Center`;
     const description =
       service.prerequisites ||
       service.steps ||
-      `Apply for ${service.name} at Sparsha Cyber Cafe Aland. Check required documents checklist, govt official fees ₹${service.fee ?? 0}, service charges, and processing timeline.`;
+      `Apply for ${service.name} at Sparsha Online Center, Aland. Check required documents checklist, govt official fees ₹${service.fee ?? 0}, service charges, and processing timeline.`;
 
     return {
       title,
@@ -92,12 +92,12 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
       keywords: [
         service.name,
         categoryName,
-        'Sparsha Cyber Cafe Aland',
+        'Sparsha Online Center Aland',
         'Online Seva Kendra Aland',
         'Karnataka Online Applications',
         'Seva Sindhu Aland',
         'Required Documents Checklist',
-        'Kalaburagi Cyber Cafe',
+        'Kalaburagi Sparsha Online Center',
         'Online Form Submission Aland'
       ],
       alternates: {
@@ -140,8 +140,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
   } catch (error) {
     console.error('generateMetadata error:', error);
     return {
-      title: 'Service Details | Sparsha Online Seva Aland',
-      description: 'Online citizen application services and documentation checklist at Sparsha Cyber Cafe Aland.',
+      title: 'Service Details | Sparsha Online Center Aland',
+      description: 'Online citizen application services and documentation checklist at Sparsha Online Center, Aland.',
     };
   }
 }

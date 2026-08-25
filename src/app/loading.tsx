@@ -6,7 +6,7 @@ export default function Loading() {
       <div className="w-12 h-12 rounded-2xl bg-blue-50 flex items-center justify-center text-blue-600 mb-3 shadow-xs">
         <Loader2 className="w-6 h-6 animate-spin" />
       </div>
-      <p className="text-xs font-bold text-slate-700">Loading Sparsha Cyber Cafe...</p>
+      <p className="text-xs font-bold text-slate-700">Loading Sparsha Online Center...</p>
       <p className="text-[11px] text-slate-400 mt-0.5">Please wait a moment</p>
     </div>
   );

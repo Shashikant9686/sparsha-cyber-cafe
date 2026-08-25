@@ -1,5 +1,5 @@
 -- ==============================================================================
--- SPARSHA CYBER CAFE & LAND - DATABASE SCHEMA MIGRATION
+-- Sparsha Online Center- DATABASE SCHEMA MIGRATION
 -- ==============================================================================
 
 -- Enable UUID extension

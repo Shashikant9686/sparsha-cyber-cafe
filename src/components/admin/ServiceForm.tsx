@@ -542,7 +542,7 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
             </div>
 
             <div className="space-y-1">
-              <label className="text-xs font-bold text-slate-700">Cyber Cafe Service Fee (₹)</label>
+              <label className="text-xs font-bold text-slate-700">Center Service Fee (₹)</label>
               <input
                 type="number"
                 step="any"
@@ -664,7 +664,7 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
                 rows={4}
                 value={steps}
                 onChange={(e) => setSteps(e.target.value)}
-                placeholder="1. Document verification at Sparsha Cyber Cafe.&#10;2. Online application submission on Seva Sindhu.&#10;3. Field verification by Revenue Inspector.&#10;4. Certificate issuance."
+                placeholder="1. Document verification at Sparsha Online Center.&#10;2. Online application submission on Seva Sindhu.&#10;3. Field verification by Revenue Inspector.&#10;4. Certificate issuance."
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
               />
             </div>

@@ -25,7 +25,7 @@ export default async function ServicesPage() {
         <div>
           <h1 className="text-3xl font-black text-slate-900 tracking-tight">Services Directory</h1>
           <p className="text-sm text-slate-600 mt-1">
-            Explore all online applications, student schemes, and seva kendra services available at Sparsha Cyber Cafe.
+            Explore all online applications, student schemes, and digital services available at Sparsha Online Center.
           </p>
         </div>
 
@@ -88,7 +88,7 @@ export default async function ServicesPage() {
 
                   <div className="pt-5 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
                     <a
-                      href={`https://wa.me/917090161083?text=${encodeURIComponent(`Hello Sparsha Cyber Cafe, I need documents verification and help for: ${displayTitle}`)}`}
+                      href={`https://wa.me/917090161083?text=${encodeURIComponent(`Hello Sparsha Online Center, I need documents verification and help for: ${displayTitle}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl transition"

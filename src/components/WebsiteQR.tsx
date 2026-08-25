@@ -2,6 +2,8 @@
 
 import React from 'react';
 import { QrCode, Download } from 'lucide-react';
+import Link from 'next/link';
+import { BUSINESS_INFO } from '@/lib/constants';
 
 export default function WebsiteQR() {
   const siteUrl = 'https://sparsha-cyber-cafe.vercel.app';
@@ -28,14 +30,14 @@ export default function WebsiteQR() {
     <div className="bg-slate-900 border border-slate-800 p-5 rounded-3xl text-center space-y-3 w-60 shadow-xl mx-auto md:mx-0">
       <div className="flex items-center justify-center gap-2 text-slate-100 font-bold text-xs">
         <QrCode className="w-4 h-4 text-blue-400" />
-        <span>Scan Sparsha Seva</span>
+        <span>Scan {BUSINESS_INFO.shortName}</span>
       </div>
 
       <div className="bg-white p-2.5 rounded-2xl inline-block shadow-inner">
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img
           src={qrImageUrl}
-          alt="Sparsha Cyber Cafe QR Code"
+          alt={`${BUSINESS_INFO.name} QR Code`}
           width={150}
           height={150}
           className="rounded-lg block"

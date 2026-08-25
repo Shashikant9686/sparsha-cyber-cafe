@@ -3,6 +3,8 @@
 import React, { useState } from 'react';
 import { X, MessageSquare, CheckSquare, Loader2 } from 'lucide-react';
 import type { RequiredDocument } from '@/lib/types';
+import Link from 'next/link';
+import { BUSINESS_INFO } from '@/lib/constants';
 
 interface WhatsAppChecklistModalProps {
   isOpen: boolean;
@@ -32,7 +34,7 @@ export default function WhatsAppChecklistModal({
         .map((d, i) => `${i + 1}. *${d.document_name}*${d.description ? ` (${d.description})` : ''}`)
         .join('\n');
 
-      const message = `*Sparsha Cyber Cafe Document Checklist*\n\n*Service:* ${serviceName}\n\n*Required Documents:*\n${docBullets}\n\n📍 Visit our cyber cafe counter with these original documents for quick verification.`;
+      const message = `*${BUSINESS_INFO.name} — Document Checklist*\n\n*Service:* ${serviceName}\n\n*Required Documents:*\n${docBullets}\n\n📍 Visit our center with these original documents for quick verification.`;
 
       const encodedMsg = encodeURIComponent(message);
       const waUrl = cleanPhone

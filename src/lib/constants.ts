@@ -1,6 +1,7 @@
 export const BUSINESS_INFO = {
-  name: "SPARSHA CYBER CAFE & ONLINE SEVA KENDRA",
-  tagline: "Your Trusted Digital Seva & Online Application Assistance Center in Aland",
+  name: "SPARSHA ONLINE CENTER",
+  tagline: "All Types of Applications Apply Here",
+  shortName: "Sparsha Online Center",
   phone: "+91 7090161083",
   phonePrimary: "+91 7090161083",
   phoneSecondary: "+91 7483941814",

@@ -1,5 +1,6 @@
 import React from 'react';
 import Link from 'next/link';
+import { BUSINESS_INFO } from '@/lib/constants';
 import { ShieldCheck, Phone, Mail, Clock, MapPin } from 'lucide-react';
 
 export default function Footer() {
@@ -13,7 +14,7 @@ export default function Footer() {
               <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white">
                 <ShieldCheck className="w-5 h-5" />
               </div>
-              <span className="font-black text-sm tracking-tight">SPARSHA CYBER CAFE & SEVA KENDRA</span>
+              <span className="font-black text-sm tracking-tight">{BUSINESS_INFO.name}</span>
             </div>
             <p className="text-xs text-slate-400 leading-relaxed">
               Authorized digital facilitation center in Aland for 371(J) quota certificates, Bhoomi RTC Pahani extracts, KCET/NEET option entry, and government applications.
@@ -63,7 +64,7 @@ export default function Footer() {
 
         {/* Bottom Bar */}
         <div className="pt-8 border-t border-slate-900 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-slate-500">
-          <p>© 2026 SPARSHA CYBER CAFE & ONLINE SEVA KENDRA. All rights reserved.</p>
+          <p>© 2026 {BUSINESS_INFO.name}. All rights reserved.</p>
           <Link href="/login" className="hover:text-slate-300 transition">
             Operator / Admin Login
           </Link>

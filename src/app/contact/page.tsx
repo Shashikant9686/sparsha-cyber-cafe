@@ -3,13 +3,13 @@ import type { Metadata } from 'next';
 import { Phone, Mail, MapPin, Clock, MessageSquare, ExternalLink, Navigation } from 'lucide-react';
 
 export const metadata: Metadata = {
-  title: 'Contact & Cyber Cafe Location in Aland',
+  title: 'Contact & Location in Aland',
   description:
-    'Visit Sparsha Cyber Cafe & Online Seva Kendra (HH78+Q27, Aland) near Lingasayat Bhavan, Sagri Complex, Razvi Road, Aland, Kalaburagi. Call 7090161083 / 7483941814.',
+    'Visit Sparsha Online Center (HH78+Q27, Aland) near Lingasayat Bhavan, Sagri Complex, Razvi Road, Aland, Kalaburagi. Call 7090161083 / 7483941814.',
   openGraph: {
-    title: 'Contact SPARSHA CYBER CAFE | Aland, Kalaburagi',
+    title: 'Contact SPARSHA ONLINE CENTER | Aland, Kalaburagi',
     description:
-      'Find Sparsha Cyber Cafe in Aland for fast online applications, KCET/NEET option entry, and certificate services.',
+      'Find Sparsha Online Center in Aland for fast online applications, KCET/NEET option entry, and certificate services.',
   },
 };
 
@@ -18,7 +18,7 @@ export default function ContactPage() {
   const phone2 = "+91 7483941814";
   const email = "Shashikantkmali83@gmail.com";
   const plusCode = "HH78+Q27, Aland, Karnataka";
-  const fullAddress = "Sparsha Cyber Cafe, HH78+Q27, Near Lingasayat Bhavan, Sagri Complex, Razvi Road, Aland, Karnataka 585302";
+  const fullAddress = "Sparsha Online Center, HH78+Q27, Near Lingasayat Bhavan, Sagri Complex, Razvi Road, Aland, Karnataka 585302";
 
   // Exact Google Maps Direction & Embed URLs using the precise Plus Code
   const googleMapEmbedUrl = "https://maps.google.com/maps?q=Sparsha+Cyber+Cafe,+HH78%2BQ27,+Aland,+Karnataka&t=&z=16&ie=UTF8&iwloc=&output=embed";
@@ -43,7 +43,7 @@ export default function ContactPage() {
             <div>
               <h2 className="text-sm font-bold text-slate-900">Centre Address</h2>
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
-                <strong>SPARSHA CYBER CAFE</strong><br />
+                <strong>SPARSHA ONLINE CENTER</strong><br />
                 Plus Code: <span className="font-semibold text-blue-600">{plusCode}</span><br />
                 Near Lingayat Bhavan, Sagri Complex, Razvi Road, Aland, Karnataka 585302
               </p>
@@ -119,7 +119,7 @@ export default function ContactPage() {
                 <p className="text-xs text-slate-500">Quick answers for document requirements & fees.</p>
               </div>
               <a
-                href="https://wa.me/917090161083?text=Hello%20Sparsha%20Cyber%20Cafe,%20I%20need%20assistance%20with%20an%20application."
+                href="https://wa.me/917090161083?text=Hello%20Sparsha%20Online%20Center,%20I%20need%20assistance%20with%20an%20application."
                 target="_blank"
                 rel="noopener noreferrer"
                 className="px-5 py-3 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow transition inline-flex items-center gap-2 whitespace-nowrap"
@@ -129,12 +129,12 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Interactive Google Map directly focused on Sparsha Cyber Cafe Plus Code */}
+          {/* Interactive Google Map directly focused on Sparsha Sparsha Online Center Plus Code */}
           <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-2 pb-3">
               <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">
                 <MapPin className="w-4 h-4 text-rose-500" />
-                Sparsha Cyber Cafe (HH78+Q27, Aland)
+                Sparsha Online Center (HH78+Q27, Aland)
               </span>
               <a
                 href={directionsUrl}
@@ -148,7 +148,7 @@ export default function ContactPage() {
             </div>
             <div className="w-full h-[400px] rounded-2xl overflow-hidden bg-slate-100 border border-slate-200 shadow-inner">
               <iframe
-                title="Sparsha Cyber Cafe Aland Map Route"
+                title="Sparsha Online Center Aland Map Route"
                 src={googleMapEmbedUrl}
                 width="100%"
                 height="100%"

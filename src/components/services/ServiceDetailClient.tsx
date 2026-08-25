@@ -188,7 +188,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
 
             {docs.length === 0 && (
               <p className="text-xs text-slate-400 italic py-4 text-center">
-                Standard ID & address proof required. Visit our cyber cafe desk for direct assistance.
+                Standard ID & address proof required. Visit our Sparsha Online Center desk for direct assistance.
               </p>
             )}
           </div>
