@@ -55,38 +55,6 @@ export default async function HomePage() {
       </section>
 
       {/* Feature Highlights */}
-      <section className="grid grid-cols-1 sm:grid-cols-3 gap-6">
-        <div className="p-6 bg-white border border-slate-200 rounded-3xl shadow-xs space-y-3">
-          <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit">
-            <ShieldCheck className="w-6 h-6" />
-          </div>
-          <h3 className="font-bold text-sm text-slate-900">Zero Error Guarantee</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            We pre-verify every certificate, photo dimension, and application detail before final submission.
-          </p>
-        </div>
-
-        <div className="p-6 bg-white border border-slate-200 rounded-3xl shadow-xs space-y-3">
-          <div className="p-3 bg-amber-50 text-amber-600 rounded-2xl w-fit">
-            <Clock className="w-6 h-6" />
-          </div>
-          <h3 className="font-bold text-sm text-slate-900">Instant WhatsApp Checklists</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Send required document checklists directly to your WhatsApp before visiting the center.
-          </p>
-        </div>
-
-        <div className="p-6 bg-white border border-slate-200 rounded-3xl shadow-xs space-y-3">
-          <div className="p-3 bg-emerald-50 text-emerald-600 rounded-2xl w-fit">
-            <FileCheck className="w-6 h-6" />
-          </div>
-          <h3 className="font-bold text-sm text-slate-900">Transparent Pricing</h3>
-          <p className="text-xs text-slate-500 leading-relaxed">
-            Clear separation between official government fees and our minimal operator charges.
-          </p>
-        </div>
-      </section>
-
       {/* Featured Services */}
       {featuredServices && featuredServices.length > 0 && (
         <section className="space-y-6">
@@ -143,7 +111,7 @@ export default async function HomePage() {
             { icon: FileCheck, title: 'Education & Counselling Support', desc: 'KCET, JEE, and NEET option-entry and counselling assistance for students and parents.' },
             { icon: ShieldCheck, title: 'Land Service Expertise', desc: 'Bhoomi RTC, Pahani, and land-record certificate support alongside every other service.' },
             { icon: Clock, title: 'Printing & Document Services', desc: 'Scanning, printing, lamination, and document preparation on the same visit.' },
-            { icon: MessageCircle, title: 'Easy WhatsApp Support', desc: 'Get a required-documents checklist sent straight to your phone before you visit.' },
+            { icon: MessageCircle, title: 'Easy WhatsApp Support', desc: 'Reach us directly on WhatsApp for quick questions or help with any application.' },
           ].map((item) => (
             <div key={item.title} className="p-6 bg-white border border-slate-200 rounded-3xl shadow-xs space-y-3">
               <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit">
