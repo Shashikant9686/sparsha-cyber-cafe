@@ -313,7 +313,7 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
             service_id: activeServiceId,
             image_url: img.image_url.trim(),
             alt_text: img.caption?.trim() || null,
-            image_type: 'service',
+            image_type: 'Poster',
             display_order: index + 1
           }));
 
