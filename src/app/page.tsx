@@ -1,12 +1,27 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { ArrowRight, ShieldCheck, Clock, FileCheck, HelpCircle, Users, MapPin, MessageCircle, ListChecks, PhoneCall, CheckCircle2 } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Clock, FileCheck, HelpCircle, Users, MessageCircle, ListChecks, Megaphone, Layers, CalendarClock } from 'lucide-react';
 import WebsiteQR from '@/components/WebsiteQR';
-import type { Service } from '@/lib/types';
+import type { Service, Category } from '@/lib/types';
 import { BUSINESS_INFO } from '@/lib/constants';
 
 export const revalidate = 60;
+
+interface HomeUpdateRow {
+  id: string;
+  title: string;
+  slug: string;
+  description: string | null;
+  image_url: string | null;
+  category: string | null;
+  featured: boolean;
+  last_date: string | null;
+}
+
+function formatDate(dateStr: string) {
+  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
+}
 
 export default async function HomePage() {
   const supabase = await createClient();
@@ -18,44 +33,123 @@ export default async function HomePage() {
     .order('display_order', { ascending: true })
     .limit(6);
 
+  const { data: latestUpdatesData } = await supabase
+    .from('announcements')
+    .select('id, title, slug, description, image_url, category, featured, last_date')
+    .eq('status', 'active')
+    .or('expires_at.is.null,expires_at.gt.now()')
+    .order('featured', { ascending: false })
+    .order('created_at', { ascending: false })
+    .limit(3);
+
+  const latestUpdates: HomeUpdateRow[] = latestUpdatesData || [];
+
+  const { data: categoriesData } = await supabase
+    .from('categories')
+    .select('id, name, slug, icon, display_order')
+    .order('display_order', { ascending: true })
+    .limit(8);
+
+  const categories: Category[] = categoriesData || [];
+
+  const staggerClass = (i: number) =>
+    ['animate-fade-in-up', 'animate-fade-in-up-1', 'animate-fade-in-up-2', 'animate-fade-in-up-3'][i % 4];
+
   return (
     <div className="space-y-16 pb-16">
       {/* Hero Section */}
       <section className="relative overflow-hidden rounded-3xl bg-linear-to-b from-blue-900 to-slate-950 text-white p-8 sm:p-12 md:p-16 border border-slate-800">
         <div className="max-w-3xl space-y-6">
-          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-300 text-xs font-semibold">
+          <div className="inline-flex items-center gap-2 px-3 py-1 bg-blue-500/10 border border-blue-500/20 rounded-full text-blue-300 text-xs font-semibold animate-fade-in-up">
             <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
             Aland&apos;s One-Stop Digital Service Center
           </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-black tracking-tight leading-tight animate-fade-in-up-1">
             {BUSINESS_INFO.name}
           </h1>
-          <p className="text-xl sm:text-2xl font-bold text-blue-300 tracking-tight">
+          <p className="text-xl sm:text-2xl font-bold text-blue-300 tracking-tight animate-fade-in-up-1">
             {BUSINESS_INFO.tagline}
           </p>
-          <p className="text-slate-300 text-sm sm:text-base leading-relaxed">
+          <p className="text-slate-300 text-sm sm:text-base leading-relaxed animate-fade-in-up-2">
             Government certificates, land services, PAN &amp; Aadhaar assistance, exam and college applications, KCET/JEE/NEET counselling, document services, and printing — all completed with verified, checklist-accurate applications.
           </p>
-          <div className="flex flex-wrap gap-4 pt-2">
+          <div className="flex flex-wrap gap-4 pt-2 animate-fade-in-up-3">
             <Link
               href="/services"
-              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition inline-flex items-center gap-2 shadow-lg shadow-blue-600/30"
+              className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 inline-flex items-center gap-2 shadow-lg shadow-blue-600/30"
             >
               <span>Explore Services</span>
               <ArrowRight className="w-4 h-4" />
             </Link>
             <Link
-              href="/counselling"
-              className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition inline-flex items-center gap-2 border border-slate-700"
+              href="/updates"
+              className="px-6 py-3 bg-slate-800 hover:bg-slate-700 text-white rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 inline-flex items-center gap-2 border border-slate-700"
             >
-              <span>KEA Counselling Desk</span>
+              <Megaphone className="w-4 h-4" />
+              <span>View Latest Updates</span>
             </Link>
+            <a
+              href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=Hello%20Sparsha%20Online%20Center,%20I%20have%20an%20application%20inquiry.`}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 inline-flex items-center gap-2 shadow-lg shadow-emerald-600/20"
+            >
+              <MessageCircle className="w-4 h-4" />
+              <span>Contact / WhatsApp</span>
+            </a>
           </div>
         </div>
       </section>
 
       {/* Feature Highlights */}
+            {/* Latest Updates */}
+      {latestUpdates && latestUpdates.length > 0 && (
+        <section className="space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h2 className="text-xl font-black text-slate-900">Latest Updates</h2>
+              <p className="text-xs text-slate-500">New applications, exam notices, and important deadlines</p>
+            </div>
+            <Link href="/updates" className="text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+              <span>View All Updates</span>
+              <ArrowRight className="w-3.5 h-3.5" />
+            </Link>
+          </div>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            {latestUpdates.map((update) => (
+              <Link
+                key={update.id}
+                href={`/updates/${update.slug}`}
+                className={`group bg-white rounded-3xl border overflow-hidden shadow-xs hover:shadow-md transition flex flex-col ${
+                  update.featured ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'
+                }`}
+              >
+                {update.image_url ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={update.image_url} alt={update.title} className="w-full h-32 object-cover" />
+                ) : (
+                  <div className="w-full h-32 bg-gradient-to-br from-blue-50 to-slate-100 flex items-center justify-center">
+                    <Megaphone className="w-6 h-6 text-blue-200" />
+                  </div>
+                )}
+                <div className="p-4 space-y-1.5">
+                  {update.category && (
+                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md">
+                      {update.category}
+                    </span>
+                  )}
+                  <h3 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-700 transition">
+                    {update.title}
+                  </h3>
+                </div>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
       {/* Featured Services */}
+      
       {featuredServices && featuredServices.length > 0 && (
         <section className="space-y-6">
           <div className="flex items-center justify-between">
