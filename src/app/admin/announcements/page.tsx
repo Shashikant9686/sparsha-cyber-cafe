@@ -3,12 +3,14 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Edit3, Loader2, AlertCircle, Bell, ExternalLink } from 'lucide-react';
+import ImageUploader from '@/components/admin/ImageUploader';
 
 interface Announcement {
   id: string;
   title: string;
   slug: string;
   description: string | null;
+  category: string | null;
   image_url: string | null;
   start_date: string | null;
   last_date: string | null;
@@ -37,10 +39,12 @@ export default function AdminAnnouncementsPage() {
   const [title, setTitle] = useState('');
   const [slug, setSlug] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('');
   const [imageUrl, setImageUrl] = useState('');
   const [officialLink, setOfficialLink] = useState('');
   const [status, setStatus] = useState('active');
   const [featured, setFeatured] = useState(false);
+  const [images, setImages] = useState<{ id?: string; image_url: string; alt_text: string }[]>([]);
   const [startDate, setStartDate] = useState('');
   const [lastDate, setLastDate] = useState('');
   const [saving, setSaving] = useState(false);
@@ -97,6 +101,7 @@ export default function AdminAnnouncementsPage() {
         title: title.trim(),
         slug: (slug.trim() || slugify(title)),
         description: description.trim() || null,
+        category: category.trim() || null,
         image_url: imageUrl.trim() || null,
         official_link: officialLink.trim() || null,
         status,
@@ -105,6 +110,8 @@ export default function AdminAnnouncementsPage() {
         last_date: lastDate || null,
         updated_at: new Date().toISOString()
       };
+
+      let activeId = editingId;
 
       if (editingId) {
         const { error } = await supabase
@@ -126,7 +133,22 @@ export default function AdminAnnouncementsPage() {
 
         if (error) throw error;
         if (data) {
+          activeId = data.id;
           setAnnouncements((prev) => [data as Announcement, ...prev]);
+        }
+      }
+
+      if (activeId) {
+        await supabase.from('announcement_images').delete().eq('announcement_id', activeId);
+        if (images.length > 0) {
+          const imagePayload = images.map((img, index) => ({
+            announcement_id: activeId,
+            image_url: img.image_url,
+            alt_text: img.alt_text || null,
+            display_order: index + 1,
+          }));
+          const { error: imgError } = await supabase.from('announcement_images').insert(imagePayload);
+          if (imgError) console.error('Error saving announcement images:', imgError);
         }
       }
 
@@ -139,11 +161,18 @@ export default function AdminAnnouncementsPage() {
     }
   };
 
-  const handleEdit = (announcement: Announcement) => {
+  const handleEdit = async (announcement: Announcement) => {
     setEditingId(announcement.id);
+    const { data: existingImages } = await supabase
+      .from('announcement_images')
+      .select('id, image_url, alt_text')
+      .eq('announcement_id', announcement.id)
+      .order('display_order', { ascending: true });
+    setImages(existingImages || []);
     setTitle(announcement.title);
     setSlug(announcement.slug);
     setDescription(announcement.description || '');
+    setCategory(announcement.category || '');
     setImageUrl(announcement.image_url || '');
     setOfficialLink(announcement.official_link || '');
     setStatus(announcement.status);
@@ -154,9 +183,11 @@ export default function AdminAnnouncementsPage() {
 
   const handleCancel = () => {
     setEditingId(null);
+    setImages([]);
     setTitle('');
     setSlug('');
     setDescription('');
+    setCategory('');
     setImageUrl('');
     setOfficialLink('');
     setStatus('active');
@@ -241,6 +272,30 @@ export default function AdminAnnouncementsPage() {
           </div>
 
           <div className="space-y-1">
+            <label className="text-xs font-bold text-slate-700">Category</label>
+            <input
+              type="text"
+              list="update-category-list"
+              value={category}
+              onChange={(e) => setCategory(e.target.value)}
+              placeholder="e.g. Exam Application, Scholarship, KCET"
+              className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
+            />
+            <datalist id="update-category-list">
+              <option value="Exam Application" />
+              <option value="Government Application" />
+              <option value="Scholarship" />
+              <option value="KCET" />
+              <option value="JEE" />
+              <option value="NEET" />
+              <option value="Counselling" />
+              <option value="Job Update" />
+              <option value="Admission" />
+              <option value="Land Service" />
+            </datalist>
+          </div>
+
+          <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700">Poster / Image URL (Optional)</label>
             <input
               type="url"
@@ -283,6 +338,34 @@ export default function AdminAnnouncementsPage() {
               onChange={(e) => setLastDate(e.target.value)}
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
             />
+          </div>
+
+          <div className="sm:col-span-2 space-y-2">
+            <label className="text-xs font-bold text-slate-700">Images / Posters (Optional, multiple allowed)</label>
+            <ImageUploader
+              bucketName="service-images"
+              folderPath="announcements"
+              onUploadSuccess={(uploaded) => {
+                setImages((prev) => [...prev, { image_url: uploaded.url, alt_text: '' }]);
+              }}
+            />
+            {images.length > 0 && (
+              <div className="grid grid-cols-2 sm:grid-cols-4 gap-2 pt-2">
+                {images.map((img, idx) => (
+                  <div key={idx} className="relative group">
+                    {/* eslint-disable-next-line @next/next/no-img-element */}
+                    <img src={img.image_url} alt="" className="w-full h-20 object-cover rounded-lg border border-slate-200" />
+                    <button
+                      type="button"
+                      onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                      className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
 
           <div className="flex items-center gap-6 sm:col-span-2 pt-2">
