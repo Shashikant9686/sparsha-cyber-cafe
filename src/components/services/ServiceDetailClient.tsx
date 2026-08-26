@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, 
@@ -14,15 +14,14 @@ import {
   HelpCircle,
   AlertCircle
 } from 'lucide-react';
-import WhatsAppChecklistModal from '@/components/WhatsAppChecklistModal';
 import { ServiceDetailData, RequiredDocument } from '@/lib/types';
+import { BUSINESS_INFO } from '@/lib/constants';
 
 interface ServiceDetailProps {
   service: ServiceDetailData;
 }
 
 export default function ServiceDetailClient({ service }: ServiceDetailProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
 
   if (!service) {
     return (
@@ -143,17 +142,16 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
           )}
 
           <div className="pt-2">
-            <button
-              type="button"
-              onClick={() => setIsModalOpen(true)}
+          <a href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=${encodeURIComponent(`Hello, I need more information about: ${service.name}`)}`}
+              target="_blank"
+              rel="noopener noreferrer"
               className="w-full sm:w-auto inline-flex items-center justify-center gap-2.5 px-6 py-3.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-bold text-sm transition shadow-sm cursor-pointer"
             >
               <Share2 className="w-4 h-4" />
-              <span>Get WhatsApp Document Checklist</span>
-            </button>
+              <span>Contact / WhatsApp for More Information</span>
+            </a>
           </div>
         </div>
-
         {/* Required Documents Section */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-4">
           <div className="flex items-center gap-2.5 text-slate-900 font-bold">
@@ -285,15 +283,6 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
         )}
 
       </div>
-
-      {isModalOpen && (
-        <WhatsAppChecklistModal
-          isOpen={isModalOpen}
-          onClose={() => setIsModalOpen(false)}
-          serviceName={service.name}
-          documents={docs}
-        />
-      )}
     </div>
   );
 }

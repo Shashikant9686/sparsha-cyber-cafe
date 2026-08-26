@@ -1,8 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { MessageSquare, CheckCircle2 } from 'lucide-react';
-import WhatsAppChecklistModal from '@/components/WhatsAppChecklistModal';
+import React from 'react';
+import { MessageCircle, CheckCircle2 } from 'lucide-react';
+import { BUSINESS_INFO } from '@/lib/constants';
 import type { RequiredDocument } from '@/lib/types';
 
 interface ServiceChecklistSectionProps {
@@ -14,11 +14,13 @@ export default function ServiceChecklistSection({
   serviceName,
   documents,
 }: ServiceChecklistSectionProps) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
-
   const sortedDocs = [...documents].sort(
     (a, b) => (a.display_order ?? 0) - (b.display_order ?? 0)
   );
+
+  const whatsappHref = `https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=${encodeURIComponent(
+    `Hello, I need more information about: ${serviceName}`
+  )}`;
 
   return (
     <div className="bg-white rounded-3xl border border-slate-200 p-6 sm:p-8 space-y-6 shadow-xs">
@@ -26,20 +28,19 @@ export default function ServiceChecklistSection({
         <div>
           <h2 className="text-lg font-black text-slate-900">Required Documents Checklist</h2>
           <p className="text-xs text-slate-500 mt-0.5">
-            Keep originals and photocopies ready before visiting our cafe.
+            Keep originals and photocopies ready before visiting our center.
           </p>
         </div>
 
-        {sortedDocs.length > 0 && (
-          <button
-            type="button"
-            onClick={() => setIsModalOpen(true)}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs cursor-pointer"
-          >
-            <MessageSquare className="w-4 h-4" />
-            <span>Send to WhatsApp</span>
-          </button>
-        )}
+        
+          <a href={whatsappHref}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-flex items-center justify-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
+        >
+          <MessageCircle className="w-4 h-4" />
+          <span>Contact / WhatsApp for More Information</span>
+        </a>
       </div>
 
       {sortedDocs.length === 0 ? (
@@ -69,13 +70,6 @@ export default function ServiceChecklistSection({
           ))}
         </div>
       )}
-
-      <WhatsAppChecklistModal
-        isOpen={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
-        serviceName={serviceName}
-        documents={sortedDocs}
-      />
     </div>
   );
 }

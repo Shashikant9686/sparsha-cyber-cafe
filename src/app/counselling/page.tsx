@@ -62,7 +62,10 @@ export default async function CounsellingPage() {
                         <Calendar className="w-3.5 h-3.5 text-blue-600" />
                         {d.title}
                       </span>
-                      <span className="font-bold text-slate-900">{d.date_text}</span>
+                      <span className="font-bold text-slate-900">
+                        {new Date(d.start_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {d.end_date && ` – ${new Date(d.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                      </span>
                     </li>
                   ))}
                 </ul>

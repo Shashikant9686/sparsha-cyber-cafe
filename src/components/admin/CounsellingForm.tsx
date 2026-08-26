@@ -17,7 +17,8 @@ import Link from 'next/link';
 export interface EventDateItem {
   id?: string;
   title: string;
-  date_text: string;
+  start_date: string;
+  end_date: string;
   description: string;
   display_order: number;
 }
@@ -76,7 +77,8 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
       ? initialData.event_dates.map((d, index) => ({
           id: d.id,
           title: d.title || '',
-          date_text: d.date_text || '',
+          start_date: d.start_date ? d.start_date.slice(0, 10) : '',
+          end_date: d.end_date ? d.end_date.slice(0, 10) : '',
           description: d.description || '',
           display_order: d.display_order ?? index + 1
         }))
@@ -88,7 +90,8 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
       ...prev,
       {
         title: '',
-        date_text: '',
+        start_date: '',
+        end_date: '',
         description: '',
         display_order: prev.length + 1
       }
@@ -166,11 +169,12 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
 
         if (dates.length > 0) {
           const datePayload = dates
-            .filter((d) => d.title.trim() !== '' || d.date_text.trim() !== '')
+            .filter((d) => d.title.trim() !== '' || d.start_date.trim() !== '')
             .map((d, index) => ({
               counselling_event_id: activeEventId,
               title: d.title.trim(),
-              date_text: d.date_text.trim(),
+              start_date: d.start_date || null,
+              end_date: d.end_date || null,
               description: d.description?.trim() || null,
               display_order: index + 1
             }));
@@ -351,7 +355,7 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
               className="flex items-start gap-2 p-3 bg-slate-50 border border-slate-200 rounded-2xl"
             >
               <GripVertical className="w-4 h-4 text-slate-400 mt-2.5 shrink-0" />
-              <div className="flex-1 grid grid-cols-1 sm:grid-cols-3 gap-2">
+              <div className="flex-1 grid grid-cols-1 sm:grid-cols-4 gap-2">
                 <input
                   type="text"
                   placeholder="Event Phase (e.g. Document Verification)"
@@ -359,13 +363,21 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
                   onChange={(e) => updateDateItem(idx, 'title', e.target.value)}
                   className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
                 />
-                <input
-                  type="text"
-                  placeholder="Date / Range (e.g. 10 Aug to 18 Aug 2026)"
-                  value={dateItem.date_text}
-                  onChange={(e) => updateDateItem(idx, 'date_text', e.target.value)}
-                  className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
-                />
+                <div className="grid grid-cols-2 gap-2">
+                  <input
+                    type="date"
+                    value={dateItem.start_date}
+                    onChange={(e) => updateDateItem(idx, 'start_date', e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
+                  />
+                  <input
+                    type="date"
+                    value={dateItem.end_date}
+                    onChange={(e) => updateDateItem(idx, 'end_date', e.target.value)}
+                    placeholder="End (optional)"
+                    className="w-full px-3 py-2 bg-white border border-slate-200 rounded-xl text-xs font-medium focus:border-blue-500 focus:outline-hidden"
+                  />
+                </div>
                 <input
                   type="text"
                   placeholder="Notes (Optional, e.g. Rank 1 to 5000)"

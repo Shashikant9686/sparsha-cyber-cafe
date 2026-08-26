@@ -82,7 +82,7 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
   const [name, setName] = useState(initialData?.name || '');
   const [slug, setSlug] = useState(initialData?.slug || '');
   const [categoryId, setCategoryId] = useState(initialData?.category_id || '');
-  const [submissionMethod, setSubmissionMethod] = useState(initialData?.submission_method || 'Online Application / Seva Sindhu');
+  const [submissionMethod, setSubmissionMethod] = useState(initialData?.submission_method || 'Online');
   const [estimatedDays, setEstimatedDays] = useState(initialData?.processing_time || '7 to 15 working days');
   const [status, setStatus] = useState(initialData?.status?.toLowerCase() || 'active');
 
@@ -500,12 +500,18 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
               <label className="text-xs font-bold text-slate-700">Submission Method / Channel</label>
               <input
                 type="text"
+                list="submission-method-list"
                 value={submissionMethod}
                 onChange={(e) => setSubmissionMethod(e.target.value)}
                 placeholder="e.g. Seva Sindhu Portal / Tahsildar Verification"
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
               />
             </div>
+                          <datalist id="submission-method-list">
+                <option value="Online" />
+                <option value="Offline Counter" />
+                <option value="Hybrid" />
+              </datalist>
 
             <div className="space-y-1">
               <label className="text-xs font-bold text-slate-700">Publication Status</label>
