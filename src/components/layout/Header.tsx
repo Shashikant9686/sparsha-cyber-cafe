@@ -3,12 +3,13 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Shield, Phone, Layers, Calendar, Info } from 'lucide-react';
+import { Menu, X, Shield, Phone, Layers, Calendar, Info, Megaphone } from 'lucide-react';
 import { BUSINESS_INFO } from '@/lib/constants';
 
 const navItems = [
   { href: '/', label: 'Home' },
   { href: '/services', label: 'Services & Seva', icon: Layers },
+  { href: '/updates', label: 'Latest Updates', icon: Megaphone },
   { href: '/counselling', label: 'Admission Desk', icon: Calendar },
   { href: '/contact', label: 'Contact & Location', icon: Info },
 ];

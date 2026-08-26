@@ -44,5 +44,22 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ];
 
-  return [...staticRoutes, ...serviceRoutes];
+  const { data: updates } = await supabase
+    .from('announcements')
+    .select('slug, updated_at')
+    .eq('status', 'active');
+
+  const updateRoutes: MetadataRoute.Sitemap = (updates || []).map((update) => ({
+    url: `${baseUrl}/updates/${update.slug}`,
+    lastModified: update.updated_at ? new Date(update.updated_at) : new Date(),
+    changeFrequency: 'weekly',
+    priority: 0.7,
+  }));
+
+  return [
+    ...staticRoutes,
+    ...serviceRoutes,
+    { url: `${baseUrl}/updates`, lastModified: new Date(), changeFrequency: 'daily', priority: 0.85 },
+    ...updateRoutes,
+  ];
 }
