@@ -4,6 +4,7 @@ import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import BroadcastBanner from '@/components/BroadcastBanner';
+import StickyWhatsAppButton from '@/components/StickyWhatsAppButton';
 import { BUSINESS_INFO } from '@/lib/constants';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -26,6 +27,7 @@ export default function RootLayout({
         <Header />
         <main className="flex-1">{children}</main>
         <Footer />
+        <StickyWhatsAppButton />
       </body>
     </html>
   );

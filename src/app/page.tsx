@@ -5,6 +5,7 @@ import { ArrowRight, ShieldCheck, Clock, FileCheck, HelpCircle, Users, MessageCi
 import WebsiteQR from '@/components/WebsiteQR';
 import type { Service, Category } from '@/lib/types';
 import { BUSINESS_INFO } from '@/lib/constants';
+import { getUpdateUrgency, getUrgencyBadgeClasses } from '@/lib/date-utils';
 
 export const revalidate = 60;
 
@@ -18,11 +19,6 @@ interface HomeUpdateRow {
   featured: boolean;
   last_date: string | null;
 }
-
-function formatDate(dateStr: string) {
-  return new Date(dateStr).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' });
-}
-
 export default async function HomePage() {
   const supabase = await createClient();
 
@@ -147,10 +143,14 @@ export default async function HomePage() {
                       {update.description}
                     </p>
                   )}
-                  {update.last_date && (
-                    <span className="mt-auto pt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600">
+                  {update.last_date && getUpdateUrgency(update.last_date) && (
+                    <span
+                      className={`mt-auto pt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md w-fit ${getUrgencyBadgeClasses(
+                        getUpdateUrgency(update.last_date)!.state
+                      )}`}
+                    >
                       <CalendarClock className="w-3 h-3" />
-                      Last date: {formatDate(update.last_date)}
+                      {getUpdateUrgency(update.last_date)!.label}
                     </span>
                   )}
                 </div>

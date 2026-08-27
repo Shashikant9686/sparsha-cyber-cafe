@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { BUSINESS_INFO } from '@/lib/constants';
 import { ShieldCheck, Phone, Mail, Clock, MapPin } from 'lucide-react';
+import OpenStatusBadge from '@/components/OpenStatusBadge';
 
 export default function Footer() {
   return (
@@ -46,6 +47,7 @@ export default function Footer() {
             <div className="flex items-start gap-2">
               <Clock className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />
               <span>Monday – Sunday: 8:00 AM – 8:00 PM</span>
+              <OpenStatusBadge />
             </div>
             <div className="flex items-start gap-2">
               <MapPin className="w-4 h-4 text-blue-400 shrink-0 mt-0.5" />

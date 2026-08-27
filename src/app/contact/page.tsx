@@ -1,6 +1,7 @@
 import React from 'react';
 import type { Metadata } from 'next';
 import { Phone, Mail, MapPin, Clock, MessageSquare, ExternalLink, Navigation } from 'lucide-react';
+import OpenStatusBadge from '@/components/OpenStatusBadge';
 
 export const metadata: Metadata = {
   title: 'Contact & Location in Aland',
@@ -98,6 +99,9 @@ export default function ContactPage() {
               <h2 className="text-sm font-bold text-slate-900">Working Hours</h2>
               <p className="text-xs text-slate-600 mt-1 leading-relaxed">
                 <strong>Monday – Sunday:</strong> 8:00 AM – 8:00 PM
+                <br />
+                <span className="mt-1 inline-block"><OpenStatusBadge /></span>
+                <span className="block mt-1 text-[10px] text-slate-400">Hours may vary on public holidays.</span>
               </p>
             </div>
           </div>

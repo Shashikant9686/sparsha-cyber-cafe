@@ -1,9 +1,10 @@
 'use client';
-
 import React, { useState } from 'react';
 import { Calendar, ExternalLink, MessageCircle, Megaphone, Star } from 'lucide-react';
 import ImageLightbox from '@/components/ui/ImageLightbox';
 import { BUSINESS_INFO } from '@/lib/constants';
+import { getUpdateUrgency, getUrgencyBadgeClasses } from '@/lib/date-utils';
+import ShareButton from '@/components/ShareButton';
 
 interface AnnouncementImage {
   id: string;
@@ -34,6 +35,7 @@ function formatDate(dateStr: string) {
 
 export default function UpdateDetailClient({ update, images }: UpdateDetailClientProps) {
   const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
+  const urgency = update.last_date ? getUpdateUrgency(update.last_date) : null;
 
   const allImages = [
     ...(update.image_url ? [{ id: 'cover', image_url: update.image_url, alt_text: update.title }] : []),
@@ -47,18 +49,21 @@ export default function UpdateDetailClient({ update, images }: UpdateDetailClien
   return (
     <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
       <div className="space-y-3">
-        <div className="flex items-center gap-2 flex-wrap">
-          {update.featured && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
-              <Star className="w-3 h-3" />
-              Featured
-            </span>
-          )}
-          {update.category && (
-            <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md">
-              {update.category}
-            </span>
-          )}
+        <div className="flex items-center justify-between gap-2 flex-wrap">
+          <div className="flex items-center gap-2 flex-wrap">
+            {update.featured && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-bold px-2 py-0.5 bg-amber-100 text-amber-800 rounded-md">
+                <Star className="w-3 h-3" />
+                Featured
+              </span>
+            )}
+            {update.category && (
+              <span className="text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md">
+                {update.category}
+              </span>
+            )}
+          </div>
+          <ShareButton title={update.title} />
         </div>
 
         <h1 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
@@ -70,12 +75,13 @@ export default function UpdateDetailClient({ update, images }: UpdateDetailClien
             <Calendar className="w-3.5 h-3.5" />
             Published: {formatDate(update.created_at)}
           </span>
-          {update.last_date && (
-            <span className="inline-flex items-center gap-1.5 font-bold text-rose-600">
+          {urgency && (
+            <span className={`inline-flex items-center gap-1.5 font-bold px-2 py-0.5 rounded-md ${getUrgencyBadgeClasses(urgency.state)}`}>
               <Calendar className="w-3.5 h-3.5" />
-              Last date: {formatDate(update.last_date)}
+              {urgency.label}
             </span>
           )}
+
         </div>
       </div>
 

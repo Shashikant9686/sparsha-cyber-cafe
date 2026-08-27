@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import { ServiceDetailData, RequiredDocument } from '@/lib/types';
 import { BUSINESS_INFO } from '@/lib/constants';
+import ShareButton from '@/components/ShareButton';
 
 interface ServiceDetailProps {
   service: ServiceDetailData;
@@ -64,7 +65,7 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
       <div className="max-w-4xl mx-auto space-y-8">
         
         {/* Navigation */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-between gap-2">
           <Link
             href="/services"
             className="inline-flex items-center gap-2 text-xs font-bold text-slate-600 hover:text-blue-600 transition bg-white px-3.5 py-2 rounded-xl border border-slate-200 shadow-xs"
@@ -73,11 +74,14 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
             <span>Back to Services</span>
           </Link>
 
-          {service.categories?.name && (
-            <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
-              {service.categories.name}
-            </span>
-          )}
+          <div className="flex items-center gap-2">
+            {service.categories?.name && (
+              <span className="text-xs font-semibold px-3 py-1 bg-blue-50 text-blue-700 rounded-full border border-blue-100">
+                {service.categories.name}
+              </span>
+            )}
+            <ShareButton title={service.name} />
+          </div>
         </div>
 
         {/* Header Hero */}

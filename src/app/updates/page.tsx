@@ -2,6 +2,7 @@ import { Metadata } from 'next';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { Megaphone, Calendar, ArrowRight, Star } from 'lucide-react';
+import { getUpdateUrgency, getUrgencyBadgeClasses } from '@/lib/date-utils';
 
 export const dynamic = 'force-dynamic';
 
@@ -128,10 +129,14 @@ export default async function UpdatesPage() {
                   )}
 
                   <div className="mt-auto pt-2 flex items-center justify-between text-[11px] text-slate-400">
-                    {update.last_date ? (
-                      <span className="inline-flex items-center gap-1 font-semibold text-rose-600">
+                    {update.last_date && getUpdateUrgency(update.last_date) ? (
+                      <span
+                        className={`inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-md ${getUrgencyBadgeClasses(
+                          getUpdateUrgency(update.last_date)!.state
+                        )}`}
+                      >
                         <Calendar className="w-3 h-3" />
-                        Last date: {formatDate(update.last_date)}
+                        {getUpdateUrgency(update.last_date)!.label}
                       </span>
                     ) : (
                       <span className="inline-flex items-center gap-1">
