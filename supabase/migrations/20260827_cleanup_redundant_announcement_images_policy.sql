@@ -1,0 +1,23 @@
+-- Migration: 20260827_cleanup_redundant_announcement_images_policy.sql
+-- Description: Removes a redundant RLS policy on public.announcement_images.
+--
+-- Context: 20260826_reconcile_announcements_schema.sql added explicit
+-- admin_insert/admin_update/admin_delete policies for this table. It later
+-- turned out a pre-existing policy, admin_write_announcement_images (FOR ALL,
+-- role authenticated, gated on is_admin()), already covered the same ground —
+-- confirmed via pg_policies that its using/with_check expressions are
+-- identical (is_admin()) to the three granular policies added afterward.
+--
+-- FOR ALL also implicitly covers SELECT, but that is not the only path to
+-- admin/public SELECT access: public_read_announcement_images is a separate,
+-- standalone SELECT policy (using: is_admin() OR EXISTS(...)) that does not
+-- depend on this ALL policy in any way. Removing the ALL policy therefore
+-- only removes a duplicate authorization path — it does not reduce what any
+-- role can do, and does not touch public SELECT behavior at all.
+--
+-- This migration removes only the named redundant policy. It does not modify
+-- admin_insert_announcement_images, admin_update_announcement_images,
+-- admin_delete_announcement_images, or public_read_announcement_images, and
+-- it does not touch any table data.
+
+DROP POLICY IF EXISTS "admin_write_announcement_images" ON public.announcement_images;
