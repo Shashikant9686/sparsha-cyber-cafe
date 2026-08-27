@@ -134,9 +134,15 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
           {(service.fee != null || service.service_charge != null) && (
             <div className="p-4 bg-blue-50/60 border border-blue-100 rounded-2xl flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
               <div className="flex items-center gap-4 text-slate-700 font-medium">
-                <span>Govt Official Fee: <strong className="text-slate-900">₹{service.fee ?? 0}</strong></span>
-                <span>•</span>
-                <span>Cafe Service Charge: <strong className="text-slate-900">₹{service.service_charge ?? 0}</strong></span>
+                {service.fee != null && (
+                  <span>Government Official Fee: <strong className="text-slate-900">₹{service.fee}</strong></span>
+                )}
+                {service.fee != null && service.service_charge != null && (
+                  <span>•</span>
+                )}
+                {service.service_charge != null && (
+                  <span>Center Service Fee: <strong className="text-slate-900">₹{service.service_charge}</strong></span>
+                )}
               </div>
             </div>
           )}

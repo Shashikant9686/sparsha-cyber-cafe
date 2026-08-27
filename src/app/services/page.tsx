@@ -8,19 +8,34 @@ export const dynamic = 'force-dynamic';
 export const revalidate = 0;
 
 interface PageProps {
-  searchParams: Promise<{ q?: string }>;
+  searchParams: Promise<{ q?: string; category?: string }>;
 }
 
 export default async function ServicesPage({ searchParams }: PageProps) {
-  const { q } = await searchParams;
+  const { q, category } = await searchParams;
   const query = q?.trim() || '';
+  const categorySlug = category?.trim() || '';
 
   const supabase = await createClient();
+
+  let selectedCategory: { id: string; name: string } | null = null;
+  if (categorySlug) {
+    const { data: matchedCategory } = await supabase
+      .from('categories')
+      .select('id, name')
+      .eq('slug', categorySlug)
+      .maybeSingle();
+    selectedCategory = matchedCategory || null;
+  }
 
   let request = supabase
     .from('services')
     .select('*, categories(name)')
     .order('created_at', { ascending: false });
+
+  if (selectedCategory) {
+    request = request.eq('category_id', selectedCategory.id);
+  }
 
   if (query) {
     request = request.or(`name.ilike.%${query}%,short_description.ilike.%${query}%,full_description.ilike.%${query}%`);
@@ -80,7 +95,8 @@ export default async function ServicesPage({ searchParams }: PageProps) {
             {serviceList.map((service) => {
               const displayTitle = service.name || 'Untitled Service';
               const displayDesc = service.short_description || service.full_description || '';
-              const fee = service.fee != null ? `₹${service.fee}` : '';
+              const govtFee = service.fee != null ? `Government Fee: ₹${service.fee}` : '';
+              const centerFee = service.service_charge != null ? `Center Service Fee: ₹${service.service_charge}` : '';
               const time = service.processing_time || '';
               const categoryName = service.categories?.name;
               const slug = service.slug || service.id;
@@ -107,7 +123,7 @@ export default async function ServicesPage({ searchParams }: PageProps) {
                       </p>
                     )}
 
-                    {(time || fee) && (
+                    {(time || govtFee || centerFee) && (
                       <div className="pt-2 flex flex-wrap items-center gap-4 text-[11px] text-slate-500 font-medium">
                         {time && (
                           <span className="inline-flex items-center gap-1">
@@ -115,10 +131,16 @@ export default async function ServicesPage({ searchParams }: PageProps) {
                             {time}
                           </span>
                         )}
-                        {fee && (
+                        {govtFee && (
                           <span className="inline-flex items-center gap-1">
                             <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
-                            {fee}
+                            {govtFee}
+                          </span>
+                        )}
+                        {centerFee && (
+                          <span className="inline-flex items-center gap-1">
+                            <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
+                            {centerFee}
                           </span>
                         )}
                       </div>
