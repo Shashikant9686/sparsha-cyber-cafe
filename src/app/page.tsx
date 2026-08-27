@@ -89,6 +89,7 @@ export default async function HomePage() {
               <span>View Latest Updates</span>
             </Link>
             <a
+              
               href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=Hello%20Sparsha%20Online%20Center,%20I%20have%20an%20application%20inquiry.`}
               target="_blank"
               rel="noopener noreferrer"
@@ -101,8 +102,7 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* Feature Highlights */}
-            {/* Latest Updates */}
+      {/* Latest Updates */}
       {latestUpdates && latestUpdates.length > 0 && (
         <section className="space-y-6">
           <div className="flex items-center justify-between">
@@ -117,11 +117,11 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-            {latestUpdates.map((update) => (
+            {latestUpdates.map((update, i) => (
               <Link
                 key={update.id}
                 href={`/updates/${update.slug}`}
-                className={`group bg-white rounded-3xl border overflow-hidden shadow-xs hover:shadow-md transition flex flex-col ${
+                className={`group bg-white rounded-3xl border overflow-hidden shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col ${staggerClass(i)} ${
                   update.featured ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'
                 }`}
               >
@@ -133,15 +133,26 @@ export default async function HomePage() {
                     <Megaphone className="w-6 h-6 text-blue-200" />
                   </div>
                 )}
-                <div className="p-4 space-y-1.5">
+                <div className="p-4 space-y-1.5 flex-1 flex flex-col">
                   {update.category && (
-                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md">
+                    <span className="inline-block text-[10px] font-bold px-2 py-0.5 bg-blue-50 text-blue-700 rounded-md w-fit">
                       {update.category}
                     </span>
                   )}
                   <h3 className="text-sm font-bold text-slate-900 leading-snug line-clamp-2 group-hover:text-blue-700 transition">
                     {update.title}
                   </h3>
+                  {update.description && (
+                    <p className="text-xs text-slate-500 leading-relaxed line-clamp-2">
+                      {update.description}
+                    </p>
+                  )}
+                  {update.last_date && (
+                    <span className="mt-auto pt-1.5 inline-flex items-center gap-1 text-[11px] font-semibold text-rose-600">
+                      <CalendarClock className="w-3 h-3" />
+                      Last date: {formatDate(update.last_date)}
+                    </span>
+                  )}
                 </div>
               </Link>
             ))}
@@ -164,11 +175,11 @@ export default async function HomePage() {
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-            {featuredServices.map((svc: Service) => (
+            {featuredServices.map((svc: Service, i: number) => (
               <Link
                 key={svc.id}
                 href={`/services/${svc.slug}`}
-                className="group p-6 bg-white border border-slate-200 hover:border-blue-500 rounded-3xl transition shadow-xs flex flex-col justify-between"
+                className={`group p-6 bg-white border border-slate-200 hover:border-blue-500 hover:-translate-y-1 rounded-3xl transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between ${staggerClass(i)}`}
               >
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
@@ -192,6 +203,32 @@ export default async function HomePage() {
         </section>
       )}
 
+      {/* Service Categories */}
+      {categories.length > 0 && (
+        <section className="space-y-6">
+          <div>
+            <h2 className="text-xl font-black text-slate-900">What We Help With</h2>
+            <p className="text-xs text-slate-500">Browse by category to find the right application faster</p>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
+            {categories.map((cat, i) => (
+              <Link
+                key={cat.id}
+                href="/services"
+                className={`group flex items-center gap-3 p-4 bg-white border border-slate-200 hover:border-blue-500 hover:-translate-y-0.5 rounded-2xl transition-all duration-300 shadow-xs hover:shadow-md ${staggerClass(i)}`}
+              >
+                <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
+                  <Layers className="w-4 h-4" />
+                </div>
+                <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition leading-snug">
+                  {cat.name}
+                </span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      )}
+
       {/* Why Choose Us */}
       <section className="space-y-6">
         <div>
@@ -206,8 +243,8 @@ export default async function HomePage() {
             { icon: ShieldCheck, title: 'Land Service Expertise', desc: 'Bhoomi RTC, Pahani, and land-record certificate support alongside every other service.' },
             { icon: Clock, title: 'Printing & Document Services', desc: 'Scanning, printing, lamination, and document preparation on the same visit.' },
             { icon: MessageCircle, title: 'Easy WhatsApp Support', desc: 'Reach us directly on WhatsApp for quick questions or help with any application.' },
-          ].map((item) => (
-            <div key={item.title} className="p-6 bg-white border border-slate-200 rounded-3xl shadow-xs space-y-3">
+          ].map((item, i) => (
+            <div key={item.title} className={`p-6 bg-white border border-slate-200 hover:border-blue-200 hover:-translate-y-0.5 rounded-3xl shadow-xs hover:shadow-md transition-all duration-300 space-y-3 ${staggerClass(i)}`}>
               <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit">
                 <item.icon className="w-6 h-6" />
               </div>
@@ -230,8 +267,8 @@ export default async function HomePage() {
             { step: '2', title: 'Check Required Documents', desc: 'View the exact checklist for your chosen service.' },
             { step: '3', title: 'Contact or Visit', desc: 'Reach out on WhatsApp or come to the center directly.' },
             { step: '4', title: 'Application Completed', desc: 'We handle the submission, checked and verified.' },
-          ].map((item) => (
-            <div key={item.step} className="space-y-2">
+          ].map((item, i) => (
+            <div key={item.step} className={`space-y-2 ${staggerClass(i)}`}>
               <div className="w-9 h-9 rounded-xl bg-blue-600 flex items-center justify-center font-black text-sm">
                 {item.step}
               </div>
@@ -253,13 +290,34 @@ export default async function HomePage() {
         <WebsiteQR />
       </section>
 
-      {/* FAQ Banner */}
-      <section className="bg-slate-50 border border-slate-200 rounded-3xl p-6 sm:p-8 flex items-center gap-4">
-        <div className="p-3 bg-white border border-slate-200 rounded-2xl text-blue-600">
+      {/* Final CTA */}
+      <section className="bg-gradient-to-br from-blue-700 to-blue-900 text-white rounded-3xl p-8 sm:p-12 text-center space-y-5 shadow-lg">
+        <div className="w-12 h-12 bg-white/10 border border-white/20 rounded-2xl flex items-center justify-center mx-auto">
           <HelpCircle className="w-6 h-6" />
         </div>
-        <div className="text-xs text-slate-600">
-          <span className="font-bold text-slate-900">Need immediate help with option entry or certificates?</span> Reach out directly via WhatsApp or visit our counter in person.
+        <div className="space-y-2">
+          <h2 className="text-xl sm:text-2xl font-black tracking-tight">Need Help With an Application?</h2>
+          <p className="text-sm text-blue-100 max-w-lg mx-auto leading-relaxed">
+            Reach out to {BUSINESS_INFO.name} on WhatsApp for quick guidance, or visit our counter in person — we&apos;ll help you get it done right.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-4 pt-1">
+          
+            
+              <a href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=Hello%20Sparsha%20Online%20Center,%20I%20have%20an%20application%20inquiry.`}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 inline-flex items-center gap-2 shadow-lg shadow-emerald-900/30"
+          >
+            <MessageCircle className="w-4 h-4" />
+            <span>Chat on WhatsApp</span>
+          </a>
+          <Link
+          href="/contact"
+            className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 inline-flex items-center gap-2"
+          >
+            <span>Contact & Location</span>
+          </Link>
         </div>
       </section>
     </div>
