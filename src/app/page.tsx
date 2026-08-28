@@ -20,6 +20,7 @@ interface HomeUpdateRow {
   featured: boolean;
   last_date: string | null;
 }
+
 export default async function HomePage() {
   const supabase = await createClient();
 
@@ -86,7 +87,6 @@ export default async function HomePage() {
               <span>View Latest Updates</span>
             </Link>
             <a
-              
               href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=Hello%20Sparsha%20Online%20Center,%20I%20have%20an%20application%20inquiry.`}
               target="_blank"
               rel="noopener noreferrer"
@@ -107,7 +107,7 @@ export default async function HomePage() {
               <h2 className="text-xl font-black text-slate-900">Latest Updates</h2>
               <p className="text-xs text-slate-500">New applications, exam notices, and important deadlines</p>
             </div>
-            <Link href="/updates" className="text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+            <Link href="/updates" className="text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 active:scale-95 transition-transform">
               <span>View All Updates</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
@@ -118,7 +118,7 @@ export default async function HomePage() {
               <Link
                 key={update.id}
                 href={`/updates/${update.slug}`}
-                className={`group bg-white rounded-3xl border overflow-hidden shadow-xs hover:shadow-md hover:-translate-y-1 transition-all duration-300 flex flex-col ${staggerClass(i)} ${
+                className={`group bg-white rounded-3xl border overflow-hidden shadow-xs hover:shadow-md hover:-translate-y-1 active:scale-95 transition-all duration-300 flex flex-col ${staggerClass(i)} ${
                   update.featured ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'
                 }`}
               >
@@ -160,8 +160,8 @@ export default async function HomePage() {
           </div>
         </section>
       )}
+
       {/* Featured Services */}
-      
       {featuredServices && featuredServices.length > 0 && (
         <section className="space-y-6">
           <div className="flex items-center justify-between">
@@ -169,7 +169,7 @@ export default async function HomePage() {
               <h2 className="text-xl font-black text-slate-900">Popular Services</h2>
               <p className="text-xs text-slate-500">Most requested applications and certificates</p>
             </div>
-            <Link href="/services" className="text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1">
+            <Link href="/services" className="text-xs font-bold text-blue-600 hover:text-blue-700 inline-flex items-center gap-1 active:scale-95 transition-transform">
               <span>View All</span>
               <ArrowRight className="w-3.5 h-3.5" />
             </Link>
@@ -180,7 +180,7 @@ export default async function HomePage() {
               <Link
                 key={svc.id}
                 href={`/services/${svc.slug}`}
-                className={`group p-6 bg-white border border-slate-200 hover:border-blue-500 hover:-translate-y-1 rounded-3xl transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between ${staggerClass(i)}`}
+                className={`group p-6 bg-white border border-slate-200 hover:border-blue-500 hover:-translate-y-1 active:scale-95 rounded-3xl transition-all duration-300 shadow-xs hover:shadow-md flex flex-col justify-between ${staggerClass(i)}`}
               >
                 <div className="space-y-2">
                   <span className="text-[10px] font-bold uppercase tracking-wider text-blue-600">
@@ -216,7 +216,7 @@ export default async function HomePage() {
               <Link
                 key={cat.id}
                 href={`/services?category=${encodeURIComponent(cat.slug)}`}
-                className={`group flex items-center gap-3 p-4 bg-white border border-slate-200 hover:border-blue-500 hover:-translate-y-0.5 rounded-2xl transition-all duration-300 shadow-xs hover:shadow-md ${staggerClass(i)}`}
+                className={`group flex items-center gap-3 p-4 bg-white border border-slate-200 hover:border-blue-500 hover:-translate-y-0.5 active:scale-95 rounded-2xl transition-all duration-300 shadow-xs hover:shadow-md ${staggerClass(i)}`}
               >
                 <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
                   {(() => {
@@ -248,7 +248,7 @@ export default async function HomePage() {
             { icon: Clock, title: 'Printing & Document Services', desc: 'Scanning, printing, lamination, and document preparation on the same visit.' },
             { icon: MessageCircle, title: 'Easy WhatsApp Support', desc: 'Reach us directly on WhatsApp for quick questions or help with any application.' },
           ].map((item, i) => (
-            <div key={item.title} className={`p-6 bg-white border border-slate-200 hover:border-blue-200 hover:-translate-y-0.5 rounded-3xl shadow-xs hover:shadow-md transition-all duration-300 space-y-3 ${staggerClass(i)}`}>
+            <div key={item.title} className={`p-6 bg-white border border-slate-200 hover:border-blue-200 hover:-translate-y-0.5 active:scale-[0.98] rounded-3xl shadow-xs hover:shadow-md transition-all duration-300 space-y-3 ${staggerClass(i)}`}>
               <div className="p-3 bg-blue-50 text-blue-600 rounded-2xl w-fit">
                 <item.icon className="w-6 h-6" />
               </div>
@@ -306,9 +306,8 @@ export default async function HomePage() {
           </p>
         </div>
         <div className="flex flex-wrap items-center justify-center gap-4 pt-1">
-          
-            
-              <a href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=Hello%20Sparsha%20Online%20Center,%20I%20have%20an%20application%20inquiry.`}
+          <a
+            href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=Hello%20Sparsha%20Online%20Center,%20I%20have%20an%20application%20inquiry.`}
             target="_blank"
             rel="noopener noreferrer"
             className="px-6 py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 inline-flex items-center gap-2 shadow-lg shadow-emerald-900/30"
@@ -317,7 +316,7 @@ export default async function HomePage() {
             <span>Chat on WhatsApp</span>
           </a>
           <Link
-          href="/contact"
+            href="/contact"
             className="px-6 py-3 bg-white/10 hover:bg-white/20 border border-white/20 text-white rounded-xl text-xs font-bold transition-all duration-200 active:scale-95 inline-flex items-center gap-2"
           >
             <span>Contact & Location</span>
