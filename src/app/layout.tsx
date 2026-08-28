@@ -6,6 +6,8 @@ import Footer from '@/components/layout/Footer';
 import BroadcastBanner from '@/components/BroadcastBanner';
 import StickyWhatsAppButton from '@/components/StickyWhatsAppButton';
 import CustomCursor from '@/components/ui/CustomCursor';
+import ScrollProgressBar from '@/components/ui/ScrollProgressBar';
+import CommandPalette from '@/components/ui/CommandPalette';
 import { BUSINESS_INFO } from '@/lib/constants';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -24,7 +26,9 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={`${inter.className} min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased`}>
+        <ScrollProgressBar />
         <CustomCursor />
+        <CommandPalette />
         <BroadcastBanner />
         <Header />
         <main className="flex-1">{children}</main>
