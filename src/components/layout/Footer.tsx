@@ -1,8 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { BUSINESS_INFO } from '@/lib/constants';
-import { ShieldCheck, Phone, Mail, Clock, MapPin } from 'lucide-react';
+import { Phone, Mail, Clock, MapPin } from 'lucide-react';
 import OpenStatusBadge from '@/components/OpenStatusBadge';
+import SparshaLogo from '@/components/ui/SparshaLogo';
 
 export default function Footer() {
   return (
@@ -11,12 +12,12 @@ export default function Footer() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
           {/* Brand Col */}
           <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <div className="w-8 h-8 rounded-xl bg-blue-600 flex items-center justify-center text-white">
-                <ShieldCheck className="w-5 h-5" />
-              </div>
-              <span className="font-black text-sm tracking-tight">{BUSINESS_INFO.name}</span>
-            </div>
+            <Link href="/" className="inline-flex items-center gap-2">
+              <SparshaLogo size="sm" showText={false} />
+              <span className="font-black text-sm tracking-tight text-white">
+                {BUSINESS_INFO.name}
+              </span>
+            </Link>
             <p className="text-xs text-slate-400 leading-relaxed">
               Authorized digital facilitation center in Aland for 371(J) quota certificates, Bhoomi RTC Pahani extracts, KCET/NEET option entry, and government applications.
             </p>

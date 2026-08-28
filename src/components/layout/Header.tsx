@@ -3,8 +3,9 @@
 import React, { useState } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Menu, X, Shield, Phone, Layers, Calendar, Info, Megaphone } from 'lucide-react';
+import { Menu, X, Phone, Layers, Calendar, Info, Megaphone } from 'lucide-react';
 import { BUSINESS_INFO } from '@/lib/constants';
+import SparshaLogo from '@/components/ui/SparshaLogo';
 
 const navItems = [
   { href: '/', label: 'Home' },
@@ -21,11 +22,9 @@ export default function Header() {
   return (
     <header className="sticky top-0 z-40 bg-white/95 backdrop-blur-md border-b border-slate-200">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-        {/* Brand */}
-        <Link href="/" className="flex items-center gap-2.5">
-          <div className="w-9 h-9 bg-blue-600 rounded-xl flex items-center justify-center text-white shadow-sm">
-            <Shield className="w-5 h-5" />
-          </div>
+        {/* Brand Logo with Tricolor Orbital Arcs & 3D Globe */}
+        <Link href="/" className="flex items-center gap-2">
+          <SparshaLogo size="sm" showText={false} />
           <div>
             <span className="font-black text-sm sm:text-base text-slate-900 tracking-tight block leading-none">
               {BUSINESS_INFO.name}
@@ -56,7 +55,7 @@ export default function Header() {
           })}
         </nav>
 
-        {/* WhatsApp Action Only */}
+        {/* WhatsApp Action */}
         <div className="flex items-center gap-2">
           <a
             href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=Hello%20Sparsha%20Online%20Center,%20I%20have%20an%20application%20inquiry.`}
@@ -105,7 +104,7 @@ export default function Header() {
               className="w-full flex items-center justify-center gap-2 p-3 bg-emerald-600 text-white font-bold rounded-xl text-xs shadow-sm"
             >
               <Phone className="w-4 h-4" />
-              <span>Chat on WhatsApp (+91 7090161083)</span>
+              <span>Chat on WhatsApp (+91 {BUSINESS_INFO.whatsappNumber})</span>
             </a>
           </div>
         </div>
