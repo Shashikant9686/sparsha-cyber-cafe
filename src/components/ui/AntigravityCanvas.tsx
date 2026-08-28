@@ -10,14 +10,16 @@ interface Particle {
   angle: number;
   length: number;
   color: string;
-  vx: number;
-  vy: number;
+  speed: number;
 }
 
 export default function AntigravityCanvas() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
 
   useEffect(() => {
+    // Only run on desktop devices with mice/pointers
+    if (!window.matchMedia('(pointer: fine)').matches) return;
+
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
@@ -27,34 +29,27 @@ export default function AntigravityCanvas() {
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
-    // Google palette colors (blue, red, yellow, green, slate)
-    const colors = [
-      '#2563eb', // Blue
-      '#3b82f6', // Sky Blue
-      '#6366f1', // Indigo
-      '#f59e0b', // Amber/Yellow
-      '#ec4899', // Pink
-      '#94a3b8', // Slate
-    ];
+    // Google-style vibrant accent colors
+    const colors = ['#2563eb', '#38bdf8', '#6366f1', '#f59e0b', '#ec4899', '#10b981'];
 
     const mouse = {
-      x: width / 2,
-      y: height / 2,
-      targetX: width / 2,
-      targetY: height / 2,
-      isHovered: false,
+      x: -1000,
+      y: -1000,
+      targetX: -1000,
+      targetY: -1000,
+      isActive: false,
     };
 
     const particles: Particle[] = [];
-    const spacing = 32; // Grid density
+    // Tighter spacing for a richer, denser field around the cursor
+    const spacing = 22;
 
     const initParticles = () => {
       particles.length = 0;
       for (let x = 0; x < width; x += spacing) {
         for (let y = 0; y < height; y += spacing) {
-          // Add slight jitter for organic look
-          const jitterX = (Math.random() - 0.5) * 12;
-          const jitterY = (Math.random() - 0.5) * 12;
+          const jitterX = (Math.random() - 0.5) * 8;
+          const jitterY = (Math.random() - 0.5) * 8;
           const color = colors[Math.floor(Math.random() * colors.length)];
 
           particles.push({
@@ -62,11 +57,10 @@ export default function AntigravityCanvas() {
             y: y + jitterY,
             originX: x + jitterX,
             originY: y + jitterY,
-            angle: 0,
-            length: 4 + Math.random() * 4,
+            angle: Math.random() * Math.PI * 2,
+            length: 4 + Math.random() * 5,
             color,
-            vx: 0,
-            vy: 0,
+            speed: 0.08 + Math.random() * 0.06,
           });
         }
       }
@@ -83,49 +77,54 @@ export default function AntigravityCanvas() {
     const handleMouseMove = (e: MouseEvent) => {
       mouse.targetX = e.clientX;
       mouse.targetY = e.clientY;
-      mouse.isHovered = true;
+      mouse.isActive = true;
     };
 
     const handleMouseLeave = () => {
-      mouse.isHovered = false;
+      mouse.isActive = false;
+      mouse.targetX = -1000;
+      mouse.targetY = -1000;
     };
 
     window.addEventListener('resize', handleResize);
     window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('mouseleave', handleMouseLeave);
 
     const render = () => {
-      // Smooth mouse interpolation
-      mouse.x += (mouse.targetX - mouse.x) * 0.08;
-      mouse.y += (mouse.targetY - mouse.y) * 0.08;
+      // Smooth lerp for liquid-like motion
+      mouse.x += (mouse.targetX - mouse.x) * 0.12;
+      mouse.y += (mouse.targetY - mouse.y) * 0.12;
 
       ctx.clearRect(0, 0, width, height);
 
+      const influenceRadius = 240; // Only animate within 240px of cursor
+
       for (let i = 0; i < particles.length; i++) {
         const p = particles[i];
-
         const dx = mouse.x - p.x;
         const dy = mouse.y - p.y;
         const dist = Math.sqrt(dx * dx + dy * dy);
-        const maxDist = 320;
 
-        // Calculate direction towards cursor
-        const targetAngle = Math.atan2(dy, dx);
-
-        if (dist < maxDist) {
-          // Particles align and get pulled towards cursor
-          const force = (1 - dist / maxDist) * 1.2;
-          p.angle = targetAngle;
-          p.x += Math.cos(targetAngle) * force * 1.5;
-          p.y += Math.sin(targetAngle) * force * 1.5;
-        } else {
-          // Settle back into starting grid positions
-          p.angle += (targetAngle - p.angle) * 0.02;
-          p.x += (p.originX - p.x) * 0.05;
-          p.y += (p.originY - p.y) * 0.05;
+        // Skip calculations for particles far away from cursor to save CPU and remove clutter
+        if (dist > influenceRadius) {
+          // Gently drift back to original position
+          p.x += (p.originX - p.x) * 0.08;
+          p.y += (p.originY - p.y) * 0.08;
+          continue;
         }
 
-        // Draw oriented particle dash
+        // Particle is near the cursor -> calculate vector angle & gravitational pull
+        const targetAngle = Math.atan2(dy, dx);
+        const force = (1 - dist / influenceRadius);
+
+        // Turn towards cursor smoothly
+        p.angle += (targetAngle - p.angle) * p.speed;
+
+        // Pull slightly towards cursor
+        p.x += Math.cos(targetAngle) * force * 2.2;
+        p.y += Math.sin(targetAngle) * force * 2.2;
+
+        // Draw particle dash
         ctx.save();
         ctx.translate(p.x, p.y);
         ctx.rotate(p.angle);
@@ -135,9 +134,11 @@ export default function AntigravityCanvas() {
         ctx.lineTo(p.length / 2, 0);
 
         ctx.strokeStyle = p.color;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = 2.2;
         ctx.lineCap = 'round';
-        ctx.globalAlpha = dist < maxDist ? 0.85 : 0.25;
+        
+        // Alpha fades smoothly based on distance from cursor
+        ctx.globalAlpha = Math.max(0, force * 0.9);
         ctx.stroke();
 
         ctx.restore();
@@ -152,14 +153,14 @@ export default function AntigravityCanvas() {
       cancelAnimationFrame(animationFrameId);
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('mouseleave', handleMouseLeave);
     };
   }, []);
 
   return (
     <canvas
       ref={canvasRef}
-      className="pointer-events-none fixed inset-0 z-0 h-full w-full opacity-60"
+      className="pointer-events-none fixed inset-0 z-30 h-full w-full mix-blend-multiply"
       aria-hidden="true"
     />
   );
