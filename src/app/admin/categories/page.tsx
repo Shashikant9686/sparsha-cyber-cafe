@@ -3,6 +3,7 @@
 import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Edit3, Loader2, AlertCircle, Layers } from 'lucide-react';
+import { CATEGORY_ICONS, CATEGORY_ICON_NAMES} from '@/lib/category-icons';
 
 interface Category {
   id: string;
@@ -200,6 +201,26 @@ export default function AdminCategoriesPage() {
               className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-200 rounded-xl text-xs font-medium focus:bg-white focus:border-blue-500 focus:outline-hidden transition"
             />
           </div>
+          <div className="space-y-1">
+  <label className="text-xs font-bold text-slate-700">Icon</label>
+  <div className="grid grid-cols-6 gap-2">
+    {CATEGORY_ICON_NAMES.map((name) => {
+      const IconComp = CATEGORY_ICONS[name];
+      return (
+        <button
+          key={name}
+          type="button"
+          onClick={() => setIcon(name)}
+          className={`p-3 rounded-xl border flex items-center justify-center transition ${
+            icon === name ? 'bg-blue-50 border-blue-500 text-blue-600' : 'bg-slate-50 border-slate-200 text-slate-500 hover:border-slate-300'
+          }`}
+        >
+          <IconComp className="w-4 h-4" />
+        </button>
+      );
+    })}
+  </div>
+</div>
 
           <div className="space-y-1">
             <label className="text-xs font-bold text-slate-700">URL Slug *</label>

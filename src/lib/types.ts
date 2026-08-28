@@ -112,3 +112,11 @@ export interface Announcement {
   created_at?: string;
   updated_at?: string;
 }
+export interface Database {
+  public: {
+    Tables: Record<string, never>;
+    Views: Record<string, never>;
+    Functions: Record<string, never>;
+    Enums: Record<string, never>;
+  };
+}

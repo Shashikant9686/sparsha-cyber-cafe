@@ -8,24 +8,38 @@ interface ShareButtonProps {
   className?: string;
 }
 
+type NavigatorWithShare = Navigator & {
+  share?: (data: { title?: string; url?: string }) => Promise<void>;
+};
+
 export default function ShareButton({ title, className }: ShareButtonProps) {
   const [copied, setCopied] = useState(false);
+  const [canNativeShare, setCanNativeShare] = useState(false);
+
+  React.useEffect(() => {
+    // Client-only feature detection: navigator.share doesn't exist during SSR,
+    // so this must run after mount.
+    const nav = typeof navigator !== 'undefined' ? (navigator as NavigatorWithShare) : undefined;
+    // eslint-disable-next-line react-hooks/set-state-in-effect
+    setCanNativeShare(Boolean(nav?.share));
+  }, []);
 
   const handleShare = async () => {
     const url = typeof window !== 'undefined' ? window.location.href : '';
+    const nav = typeof navigator !== 'undefined' ? (navigator as NavigatorWithShare) : undefined;
 
-    if (typeof navigator !== 'undefined' && navigator.share) {
+    if (nav?.share) {
       try {
-        await navigator.share({ title, url });
+        await nav.share({ title, url });
       } catch {
         // user cancelled the share sheet — no action needed
       }
       return;
     }
 
-    if (typeof navigator !== 'undefined' && navigator.clipboard) {
+    if (nav?.clipboard) {
       try {
-        await navigator.clipboard.writeText(url);
+        await nav.clipboard.writeText(url);
         setCopied(true);
         setTimeout(() => setCopied(false), 2000);
       } catch {
@@ -50,11 +64,7 @@ export default function ShareButton({ title, className }: ShareButtonProps) {
         </>
       ) : (
         <>
-          {typeof navigator !== 'undefined' && navigator.share ? (
-            <Share2 className="w-3.5 h-3.5" />
-          ) : (
-            <Link2 className="w-3.5 h-3.5" />
-          )}
+          {canNativeShare ? <Share2 className="w-3.5 h-3.5" /> : <Link2 className="w-3.5 h-3.5" />}
           <span>Share</span>
         </>
       )}

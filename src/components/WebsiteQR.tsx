@@ -6,7 +6,7 @@ import Link from 'next/link';
 import { BUSINESS_INFO } from '@/lib/constants';
 
 export default function WebsiteQR() {
-  const siteUrl = 'https://sparsha-cyber-cafe.vercel.app';
+  const siteUrl = process.env.NEXT_PUBLIC_SITE_URL || 'https://sparsha-cyber-cafe.vercel.app';
   const qrImageUrl = `https://api.qrserver.com/v1/create-qr-code/?size=300x300&data=${encodeURIComponent(siteUrl)}`;
 
   const handleDownload = async () => {

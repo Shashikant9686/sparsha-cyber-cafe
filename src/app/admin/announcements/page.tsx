@@ -148,7 +148,10 @@ export default function AdminAnnouncementsPage() {
             display_order: index + 1,
           }));
           const { error: imgError } = await supabase.from('announcement_images').insert(imagePayload);
-          if (imgError) console.error('Error saving announcement images:', imgError);
+          if (imgError) {
+            console.error('Error saving announcement images:', imgError);
+            setErrorMsg(`Announcement saved, but images failed to save: ${imgError.message}`);
+          }
         }
       }
 

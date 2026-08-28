@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import { ArrowRight, ShieldCheck, Clock, FileCheck, HelpCircle, Users, MessageCircle, ListChecks, Megaphone, Layers, CalendarClock } from 'lucide-react';
+import { getCategoryIcon } from '@/lib/category-icons';
 import WebsiteQR from '@/components/WebsiteQR';
 import type { Service, Category } from '@/lib/types';
 import { BUSINESS_INFO } from '@/lib/constants';
@@ -214,11 +215,14 @@ export default async function HomePage() {
             {categories.map((cat, i) => (
               <Link
                 key={cat.id}
-                href="/services"
+                href={`/services?category=${encodeURIComponent(cat.slug)}`}
                 className={`group flex items-center gap-3 p-4 bg-white border border-slate-200 hover:border-blue-500 hover:-translate-y-0.5 rounded-2xl transition-all duration-300 shadow-xs hover:shadow-md ${staggerClass(i)}`}
               >
                 <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl shrink-0">
-                  <Layers className="w-4 h-4" />
+                  {(() => {
+                    const CatIcon = getCategoryIcon(cat.icon);
+                    return <CatIcon className="w-4 h-4" />;
+                  })()}
                 </div>
                 <span className="text-xs font-bold text-slate-800 group-hover:text-blue-600 transition leading-snug">
                   {cat.name}

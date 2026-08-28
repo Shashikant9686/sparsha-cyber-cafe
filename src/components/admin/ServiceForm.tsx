@@ -298,7 +298,10 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
             .from('required_documents')
             .insert(validDocs);
 
-          if (docError) console.error('Error inserting documents:', docError);
+          if (docError) {
+            console.error('Error inserting documents:', docError);
+            setErrorMsg(`Service saved, but required documents failed to save: ${docError.message}`);
+          }
         }
 
         // 2. Sync service_images table
@@ -322,7 +325,12 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
             .from('service_images')
             .insert(validImages);
 
-          if (imgError) console.error('Error inserting images:', imgError);
+          if (imgError) {
+            console.error('Error inserting images:', imgError);
+            setErrorMsg((prev) => prev
+              ? `${prev} Images also failed to save: ${imgError.message}`
+              : `Service saved, but images failed to save: ${imgError.message}`);
+          }
         }
       }
 

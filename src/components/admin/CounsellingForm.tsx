@@ -184,7 +184,10 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
               .from('event_dates')
               .insert(datePayload);
 
-            if (dateError) console.error('Error inserting event dates:', dateError);
+            if (dateError) {
+              console.error('Error inserting event dates:', dateError);
+              setErrorMsg(`Event saved, but timeline dates failed to save: ${dateError.message}`);
+            }
           }
         }
       }
