@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
-import { ArrowRight, ShieldCheck, Clock, FileCheck, HelpCircle, Users, MessageCircle, ListChecks, Megaphone, Layers, CalendarClock } from 'lucide-react';
+import { ArrowRight, ShieldCheck, Clock, FileCheck, HelpCircle, Users, MessageCircle, ListChecks, Megaphone, CalendarClock } from 'lucide-react';
 import { getCategoryIcon } from '@/lib/category-icons';
 import WebsiteQR from '@/components/WebsiteQR';
 import type { Service, Category } from '@/lib/types';

@@ -2,7 +2,6 @@
 
 import { useState, useEffect } from 'react';
 import { MessageCircle, X } from 'lucide-react';
-import { BUSINESS_INFO } from '@/lib/constants';
 
 export default function WhatsAppPulseBadge() {
   const [visible, setVisible] = useState(false);

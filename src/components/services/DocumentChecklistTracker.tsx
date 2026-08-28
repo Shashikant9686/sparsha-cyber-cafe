@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { CheckCircle2, Circle, FileText, Sparkles } from 'lucide-react';
+import { CheckCircle2, Circle, Sparkles } from 'lucide-react';
 
 interface DocumentChecklistTrackerProps {
   documents: { id: string; document_name: string; is_mandatory: boolean }[];

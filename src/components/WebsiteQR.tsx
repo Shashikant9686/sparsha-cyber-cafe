@@ -2,7 +2,6 @@
 
 import React from 'react';
 import { QrCode, Download } from 'lucide-react';
-import Link from 'next/link';
 import { BUSINESS_INFO } from '@/lib/constants';
 
 export default function WebsiteQR() {

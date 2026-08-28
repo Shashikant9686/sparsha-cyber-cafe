@@ -1,24 +1,21 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Clock, MapPin } from 'lucide-react';
 
 export default function LiveShopStatus() {
   const [isOpen, setIsOpen] = useState<boolean | null>(null);
 
   useEffect(() => {
     const checkOpenStatus = () => {
-      // Indian Standard Time (UTC + 5:30)
       const now = new Date();
       const istTime = new Date(now.toLocaleString('en-US', { timeZone: 'Asia/Kolkata' }));
-      const day = istTime.getDay(); // 0 = Sunday, 1 = Monday, ...
+      const day = istTime.getDay();
       const hour = istTime.getHours();
 
-      // Open Mon - Sat: 9:00 AM to 8:30 PM (Sunday: 10:00 AM to 2:00 PM)
       if (day === 0) {
         setIsOpen(hour >= 10 && hour < 14);
       } else {
-        setIsOpen(hour >= 9 && hour < 20);
+        setIsOpen(hour >= 8 && hour < 20);
       }
     };
 
@@ -43,7 +40,7 @@ export default function LiveShopStatus() {
           }`}
         />
       </span>
-      <span>{isOpen ? 'Center Open Now in Aland' : 'Center Closed (Opens at 9 AM)'}</span>
+      <span>{isOpen ? 'Center Open Now in Aland' : 'Center Closed (Opens at 8 AM)'}</span>
     </div>
   );
 }
