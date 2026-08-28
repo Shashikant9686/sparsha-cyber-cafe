@@ -2,6 +2,7 @@ import React from 'react';
 import type { Metadata } from 'next';
 import { Phone, Mail, MapPin, Clock, MessageSquare, ExternalLink, Navigation } from 'lucide-react';
 import OpenStatusBadge from '@/components/OpenStatusBadge';
+import MapDirectionsCard from '@/components/ui/MapDirectionsCard';
 
 export const metadata: Metadata = {
   title: 'Contact & Location in Aland',
@@ -19,9 +20,7 @@ export default function ContactPage() {
   const phone2 = "+91 7483941814";
   const email = "Shashikantkmali83@gmail.com";
   const plusCode = "HH78+Q27, Aland, Karnataka";
-  const fullAddress = "Sparsha Online Center, HH78+Q27, Near Lingasayat Bhavan, Sagri Complex, Razvi Road, Aland, Karnataka 585302";
 
-  // Exact Google Maps Direction & Embed URLs using the precise Plus Code
   const googleMapEmbedUrl = "https://maps.google.com/maps?q=Sparsha+Cyber+Cafe,+HH78%2BQ27,+Aland,+Karnataka&t=&z=16&ie=UTF8&iwloc=&output=embed";
   const directionsUrl = "https://www.google.com/maps/dir/?api=1&destination=Sparsha+Cyber+Cafe,+HH78%2BQ27,+Aland,+Karnataka";
 
@@ -113,7 +112,7 @@ export default function ContactPage() {
             <div className="space-y-1">
               <h2 className="text-lg font-bold text-slate-900">WhatsApp Document Pre-Verification</h2>
               <p className="text-xs text-slate-500">
-                Send photos of your marks card, Aadhaar, or caste certificate on WhatsApp before visiting.
+                Send photos of your marks card, identity proof, or caste certificate on WhatsApp before visiting.
               </p>
             </div>
 
@@ -133,7 +132,10 @@ export default function ContactPage() {
             </div>
           </div>
 
-          {/* Interactive Google Map directly focused on Sparsha Sparsha Online Center Plus Code */}
+          {/* GPS Directions Card */}
+          <MapDirectionsCard />
+
+          {/* Interactive Google Map directly focused on Sparsha Online Center Plus Code */}
           <div className="bg-white p-4 rounded-3xl border border-slate-200 shadow-sm overflow-hidden">
             <div className="flex items-center justify-between px-2 pb-3">
               <span className="text-xs font-bold text-slate-900 flex items-center gap-1.5">

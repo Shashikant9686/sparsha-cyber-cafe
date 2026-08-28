@@ -10,6 +10,7 @@ import AntigravityCanvas from '@/components/ui/AntigravityCanvas';
 import ScrollProgressBar from '@/components/ui/ScrollProgressBar';
 import CommandPalette from '@/components/ui/CommandPalette';
 import BackToTop from '@/components/ui/BackToTop';
+import MobileBottomSheet from '@/components/ui/MobileBottomSheet';
 import { BUSINESS_INFO } from '@/lib/constants';
 
 const inter = Inter({ subsets: ['latin'] });
@@ -69,6 +70,7 @@ export default function RootLayout({
         {/* Global Floating Action Controls */}
         <BackToTop />
         <StickyWhatsAppButton />
+        <MobileBottomSheet />
       </body>
     </html>
   );
