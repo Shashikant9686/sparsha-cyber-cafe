@@ -48,7 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     .from('announcements')
     .select('slug, updated_at')
     .eq('status', 'active')
-    .or('expires_at.is.null,expires_at.gt.now()');
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`);
 
   const updateRoutes: MetadataRoute.Sitemap = (updates || []).map((update) => ({
     url: `${baseUrl}/updates/${update.slug}`,
