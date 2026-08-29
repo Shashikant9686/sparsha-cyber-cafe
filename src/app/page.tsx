@@ -35,7 +35,7 @@ export default async function HomePage() {
     .from('announcements')
     .select('id, title, slug, description, image_url, category, featured, last_date')
     .eq('status', 'active')
-    .or('expires_at.is.null,expires_at.gt.now()')
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .order('featured', { ascending: false })
     .order('created_at', { ascending: false })
     .limit(3);

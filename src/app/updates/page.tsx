@@ -44,7 +44,7 @@ export default async function UpdatesPage() {
     .from('announcements')
     .select('id, title, slug, description, image_url, category, status, featured, start_date, last_date, expires_at, created_at')
     .eq('status', 'active')
-    .or('expires_at.is.null,expires_at.gt.now()')
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .order('featured', { ascending: false })
     .order('created_at', { ascending: false });
 
