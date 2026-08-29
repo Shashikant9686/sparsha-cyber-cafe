@@ -19,6 +19,8 @@ export default function AntigravityCanvas() {
   useEffect(() => {
     // Only run on desktop devices with mice/pointers
     if (!window.matchMedia('(pointer: fine)').matches) return;
+    // Respect the user's OS-level motion preference
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -26,6 +28,7 @@ export default function AntigravityCanvas() {
     if (!ctx) return;
 
     let animationFrameId: number;
+    let isPaused = false;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
@@ -86,9 +89,20 @@ export default function AntigravityCanvas() {
       mouse.targetY = -1000;
     };
 
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        isPaused = true;
+        cancelAnimationFrame(animationFrameId);
+      } else if (isPaused) {
+        isPaused = false;
+        render();
+      }
+    };
+
     window.addEventListener('resize', handleResize);
     window.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseleave', handleMouseLeave);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     const render = () => {
       // Smooth lerp for liquid-like motion
@@ -144,7 +158,9 @@ export default function AntigravityCanvas() {
         ctx.restore();
       }
 
-      animationFrameId = requestAnimationFrame(render);
+      if (!isPaused) {
+        animationFrameId = requestAnimationFrame(render);
+      }
     };
 
     render();
@@ -154,6 +170,7 @@ export default function AntigravityCanvas() {
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
   }, []);
 
