@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { createClient } from '@/lib/supabase/client';
 import { Plus, Trash2, Edit3, Loader2, AlertCircle, Bell, ExternalLink } from 'lucide-react';
 import ImageUploader from '@/components/admin/ImageUploader';
+ import { extractStoragePath } from '@/lib/storage-utils';
 
 interface Announcement {
   id: string;
@@ -199,16 +200,110 @@ export default function AdminAnnouncementsPage() {
     setLastDate('');
   };
 
+  // Safety check before deleting a Storage file: confirms no other surviving
+  // announcement_images row or announcements.image_url still points at this
+  // exact URL. excludeImageRowId lets a not-yet-deleted announcement_images
+  // row exclude itself from the check.
+  const isImageUrlStillReferenced = async (imageUrl: string, excludeImageRowId?: string) => {
+    let imagesQuery = supabase
+      .from('announcement_images')
+      .select('id', { count: 'exact', head: true })
+      .eq('image_url', imageUrl);
+    if (excludeImageRowId) {
+      imagesQuery = imagesQuery.neq('id', excludeImageRowId);
+    }
+    const { count: imagesCount } = await imagesQuery;
+    if (imagesCount && imagesCount > 0) return true;
+
+    const { count: announcementsCount } = await supabase
+      .from('announcements')
+      .select('id', { count: 'exact', head: true })
+      .eq('image_url', imageUrl);
+    if (announcementsCount && announcementsCount > 0) return true;
+
+    return false;
+  };
+
+  const handleRemoveImage = async (idx: number) => {
+    const target = images[idx];
+    setImages((prev) => prev.filter((_, i) => i !== idx));
+
+    if (!target?.image_url) return;
+
+    try {
+      const stillReferenced = await isImageUrlStillReferenced(target.image_url, target.id);
+      if (stillReferenced) return;
+
+      const path = extractStoragePath(target.image_url, 'service-images');
+      if (path) {
+        const { error } = await supabase.storage.from('service-images').remove([path]);
+        if (error) {
+          console.error('Failed to remove storage file (non-blocking):', error);
+        }
+      }
+    } catch (err) {
+      console.error('Failed to check/remove storage file (non-blocking):', err);
+    }
+  };
+
   const handleDelete = async (id: string) => {
     if (!window.confirm('Are you sure you want to delete this alert?')) return;
 
     try {
       setDeletingId(id);
+
+      // Collect every Storage-referencing URL for this announcement BEFORE deleting,
+      // since the row (and its cascaded announcement_images rows) won't exist afterward.
+      const { data: announcementRow } = await supabase
+        .from('announcements')
+        .select('image_url')
+        .eq('id', id)
+        .maybeSingle();
+
+      const { data: childImages } = await supabase
+        .from('announcement_images')
+        .select('image_url')
+        .eq('announcement_id', id);
+
+      const candidateUrls = [
+        ...(announcementRow?.image_url ? [announcementRow.image_url] : []),
+        ...((childImages || []).map((img) => img.image_url).filter((u): u is string => !!u)),
+      ];
+      const uniqueUrls = Array.from(new Set(candidateUrls));
+
+      // Database deletion first — announcement_images rows cascade via FK.
       const { error } = await supabase.from('announcements').delete().eq('id', id);
       if (error) throw error;
 
       setAnnouncements((prev) => prev.filter((a) => a.id !== id));
       if (editingId === id) handleCancel();
+
+      // Storage cleanup is best-effort and must never undo or block the
+      // database deletion that already succeeded above.
+      if (uniqueUrls.length > 0) {
+        try {
+          const stillReferenced = new Set<string>();
+          for (const url of uniqueUrls) {
+            if (await isImageUrlStillReferenced(url)) {
+              stillReferenced.add(url);
+            }
+          }
+
+          const paths = uniqueUrls
+            .filter((url) => !stillReferenced.has(url))
+            .map((url) => extractStoragePath(url, 'service-images'))
+            .filter((p): p is string => p !== null);
+
+          if (paths.length > 0) {
+            const { error: storageError } = await supabase.storage.from('service-images').remove(paths);
+            if (storageError) {
+              console.error('Failed to remove some storage files (non-blocking):', storageError);
+            }
+          }
+        } catch (storageErr) {
+          console.error('Storage cleanup failed after announcement deletion (non-blocking):', storageErr);
+        }
+      }
     } catch (err: unknown) {
       console.error('Failed to delete announcement:', err);
       alert(err instanceof Error ? err.message : 'Failed to delete alert');
@@ -360,7 +455,7 @@ export default function AdminAnnouncementsPage() {
                     <img src={img.image_url} alt="" className="w-full h-20 object-cover rounded-lg border border-slate-200" />
                     <button
                       type="button"
-                      onClick={() => setImages((prev) => prev.filter((_, i) => i !== idx))}
+                      onClick={() => handleRemoveImage(idx)}
                       className="absolute top-1 right-1 p-1 bg-rose-600 text-white rounded-full opacity-0 group-hover:opacity-100 transition"
                     >
                       <Trash2 className="w-3 h-3" />
