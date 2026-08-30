@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Link from 'next/link';
 import { 
   ArrowLeft, 
@@ -17,12 +17,14 @@ import {
 import { ServiceDetailData, RequiredDocument } from '@/lib/types';
 import { BUSINESS_INFO } from '@/lib/constants';
 import ShareButton from '@/components/ShareButton';
+import ImageLightbox from '@/components/ui/ImageLightbox';
 
 interface ServiceDetailProps {
   service: ServiceDetailData;
 }
 
 export default function ServiceDetailClient({ service }: ServiceDetailProps) {
+  const [lightboxUrl, setLightboxUrl] = useState<string | null>(null);
 
   if (!service) {
     return (
@@ -221,14 +223,19 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
             <h2 className="text-lg font-bold text-slate-900">Sample Images</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {service.service_images.map((img) => (
-                <div key={img.id} className="rounded-xl overflow-hidden border border-slate-200 aspect-square">
+                <button
+                  key={img.id}
+                  type="button"
+                  onClick={() => setLightboxUrl(img.image_url)}
+                  className="rounded-xl overflow-hidden border border-slate-200 aspect-square cursor-pointer"
+                >
                   {/* eslint-disable-next-line @next/next/no-img-element */}
                   <img
                     src={img.image_url}
                     alt={img.alt_text || service.name}
                     className="w-full h-full object-cover"
                   />
-                </div>
+                </button>
               ))}
             </div>
           </div>
@@ -293,6 +300,13 @@ export default function ServiceDetailClient({ service }: ServiceDetailProps) {
         )}
 
       </div>
+
+      <ImageLightbox
+        isOpen={lightboxUrl !== null}
+        imageUrl={lightboxUrl || ''}
+        altText={service.name}
+        onClose={() => setLightboxUrl(null)}
+      />
     </div>
   );
 }
