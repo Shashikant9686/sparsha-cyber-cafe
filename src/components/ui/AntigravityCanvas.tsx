@@ -19,16 +19,17 @@ export default function AntigravityCanvas() {
   useEffect(() => {
     // Only run on desktop devices with mice/pointers
     if (!window.matchMedia('(pointer: fine)').matches) return;
-    // Respect the user's OS-level motion preference
-    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+
+    // Respect prefers-reduced-motion: do not initialize the animation at all
+    const reducedMotionQuery = window.matchMedia('(prefers-reduced-motion: reduce)');
+    if (reducedMotionQuery.matches) return;
 
     const canvas = canvasRef.current;
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
 
-    let animationFrameId: number;
-    let isPaused = false;
+    let animationFrameId: number | null = null;
     let width = (canvas.width = window.innerWidth);
     let height = (canvas.height = window.innerHeight);
 
@@ -89,22 +90,18 @@ export default function AntigravityCanvas() {
       mouse.targetY = -1000;
     };
 
-    const handleVisibilityChange = () => {
-      if (document.hidden) {
-        isPaused = true;
-        cancelAnimationFrame(animationFrameId);
-      } else if (isPaused) {
-        isPaused = false;
-        render();
-      }
-    };
-
     window.addEventListener('resize', handleResize);
     window.addEventListener('mousemove', handleMouseMove);
     document.addEventListener('mouseleave', handleMouseLeave);
-    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    // Fades opacity in over the first ~20 frames after (re)starting, so resuming
+    // from a paused/hidden state doesn't visually "pop" back in. Costs one extra
+    // multiply per particle per frame — negligible next to the sqrt/trig already done.
+    let resumeFade = 0;
 
     const render = () => {
+      resumeFade = Math.min(1, resumeFade + 0.05);
+
       // Smooth lerp for liquid-like motion
       mouse.x += (mouse.targetX - mouse.x) * 0.12;
       mouse.y += (mouse.targetY - mouse.y) * 0.12;
@@ -150,23 +147,47 @@ export default function AntigravityCanvas() {
         ctx.strokeStyle = p.color;
         ctx.lineWidth = 2.2;
         ctx.lineCap = 'round';
-        
-        // Alpha fades smoothly based on distance from cursor
-        ctx.globalAlpha = Math.max(0, force * 0.9);
+
+        // Alpha fades smoothly based on distance from cursor, and on resume
+        ctx.globalAlpha = Math.max(0, force * 0.9) * resumeFade;
         ctx.stroke();
 
         ctx.restore();
       }
 
-      if (!isPaused) {
-        animationFrameId = requestAnimationFrame(render);
+      animationFrameId = requestAnimationFrame(render);
+    };
+
+    const stop = () => {
+      if (animationFrameId !== null) {
+        cancelAnimationFrame(animationFrameId);
+        animationFrameId = null;
       }
     };
 
-    render();
+    const start = () => {
+      if (animationFrameId === null) {
+        resumeFade = 0; // fade back in smoothly rather than popping to full opacity
+        render();
+      }
+    };
+
+    const handleVisibilityChange = () => {
+      if (document.hidden) {
+        stop();
+      } else {
+        start();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+
+    if (!document.hidden) {
+      start();
+    }
 
     return () => {
-      cancelAnimationFrame(animationFrameId);
+      stop();
       window.removeEventListener('resize', handleResize);
       window.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseleave', handleMouseLeave);
