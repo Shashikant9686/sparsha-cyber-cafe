@@ -87,7 +87,7 @@ export default async function UpdatesPage() {
                 key={update.id}
                 href={`/updates/${update.slug}`}
                 className={`group bg-white rounded-3xl border overflow-hidden shadow-xs hover:shadow-md transition flex flex-col ${
-                  update.featured ? 'border-amber-300 ring-1 ring-amber-200' : 'border-slate-200'
+                  update.featured ? 'border-amber-300 ring-1 ring-amber-200 featured-card-glow' : 'border-slate-200'
                 }`}
               >
                 {update.image_url ? (

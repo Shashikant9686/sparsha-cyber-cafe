@@ -47,9 +47,9 @@ export default function ImageLightbox({
         type="button"
         onClick={onClose}
         aria-label="Close image preview"
-        className="absolute top-4 right-4 p-2.5 text-white/80 hover:text-white bg-black/40 hover:bg-black/60 rounded-full transition cursor-pointer"
+        className="absolute top-4 right-4 sm:top-5 sm:right-5 p-3 text-slate-900 bg-white hover:bg-slate-100 rounded-full shadow-lg ring-1 ring-black/10 transition-transform hover:scale-105 active:scale-95 cursor-pointer"
       >
-        <X className="w-6 h-6" />
+        <X className="w-5 h-5 sm:w-6 sm:h-6" strokeWidth={2.5} />
       </button>
 
       {/* eslint-disable-next-line @next/next/no-img-element */}
