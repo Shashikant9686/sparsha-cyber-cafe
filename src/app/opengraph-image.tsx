@@ -1,7 +1,7 @@
 import { ImageResponse } from 'next/og';
 import { BUSINESS_INFO } from '@/lib/constants';
 
-export const runtime = 'edge';
+export const runtime = 'nodejs';
 export const alt = `${BUSINESS_INFO.name} - Digital Seva Center in Aland`;
 export const size = { width: 1200, height: 630 };
 export const contentType = 'image/png';
