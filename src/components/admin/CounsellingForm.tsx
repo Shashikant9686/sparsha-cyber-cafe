@@ -161,34 +161,27 @@ export default function CounsellingForm({ initialData, eventId }: CounsellingFor
       }
 
       if (activeEventId) {
-        // Sync event_dates: delete old ones then re-insert current list
-        await supabase
-          .from('event_dates')
-          .delete()
-          .eq('counselling_event_id', activeEventId);
+        // Atomically replace event_dates for this event via the existing
+        // sync_counselling_dates RPC.
+        const datePayload = dates
+          .filter((d) => d.title.trim() !== '' || d.start_date.trim() !== '')
+          .map((d, index) => ({
+            title: d.title.trim(),
+            description: d.description.trim() || null,
+            start_date: d.start_date || null,
+            end_date: d.end_date || null,
+            display_order: index + 1
+          }));
 
-        if (dates.length > 0) {
-          const datePayload = dates
-            .filter((d) => d.title.trim() !== '' || d.start_date.trim() !== '')
-            .map((d, index) => ({
-              counselling_event_id: activeEventId,
-              title: d.title.trim(),
-              start_date: d.start_date || null,
-              end_date: d.end_date || null,
-              description: d.description?.trim() || null,
-              display_order: index + 1
-            }));
+        const { error: dateError } = await supabase.rpc('sync_counselling_dates', {
+          p_event_id: activeEventId,
+          p_dates: datePayload
+        });
 
-          if (datePayload.length > 0) {
-            const { error: dateError } = await supabase
-              .from('event_dates')
-              .insert(datePayload);
-
-            if (dateError) {
-              console.error('Error inserting event dates:', dateError);
-              setErrorMsg(`Event saved, but timeline dates failed to save: ${dateError.message}`);
-            }
-          }
+        if (dateError) {
+          throw new Error(
+            `Event details were saved, but timeline dates failed to save: ${dateError.message}. Your previous dates were kept — please try saving again.`
+          );
         }
       }
 
