@@ -3,12 +3,66 @@
 :root {
   --background: #f8fafc;
   --foreground: #0f172a;
+
+  /* ===================================================================
+   * SPARSHA design tokens — Phase 2a foundation.
+   * Canonical source of truth for the new visual system. Not yet applied
+   * to individual pages/components — that happens in later phases.
+   * =================================================================== */
+  --sp-ink: #16150f;
+  --sp-ink-soft: #211f17;
+  --sp-ivory: #faf6ec;
+  --sp-surface: #ffffff;
+  --sp-stone-200: #e7e2d6;
+  --sp-stone-500: #8b8579;
+  --sp-stone-700: #4a473e;
+
+  --sp-saffron: #e8620a;
+  --sp-saffron-soft: #fbeadd;
+  --sp-green: #1f6d42;
+  --sp-green-soft: #e4f0e8;
+  --sp-whatsapp: #22c55e;
+
+  --sp-radius-control: 12px;
+  --sp-radius-panel: 20px;
+
+  --sp-shadow-panel: 0 1px 2px 0 rgb(22 21 15 / 0.06), 0 1px 3px 0 rgb(22 21 15 / 0.08);
+  --sp-shadow-panel-hover: 0 8px 20px -4px rgb(22 21 15 / 0.12), 0 2px 6px 0 rgb(22 21 15 / 0.06);
+}
+
+/* Expose the --sp-* tokens as Tailwind utilities (bg-ink, text-saffron,
+ * rounded-panel, shadow-panel, font-display, font-sans, etc.) so later
+ * phases can apply the system with ordinary Tailwind classes instead of
+ * arbitrary-value CSS var() syntax. `inline` because these reference
+ * existing custom properties (including the next/font variables set on
+ * <html>) rather than static values. */
+@theme inline {
+  --color-ink: var(--sp-ink);
+  --color-ink-soft: var(--sp-ink-soft);
+  --color-ivory: var(--sp-ivory);
+  --color-surface: var(--sp-surface);
+  --color-stone-200: var(--sp-stone-200);
+  --color-stone-500: var(--sp-stone-500);
+  --color-stone-700: var(--sp-stone-700);
+  --color-saffron: var(--sp-saffron);
+  --color-saffron-soft: var(--sp-saffron-soft);
+  --color-green: var(--sp-green);
+  --color-green-soft: var(--sp-green-soft);
+  --color-whatsapp: var(--sp-whatsapp);
+
+  --radius-control: var(--sp-radius-control);
+  --radius-panel: var(--sp-radius-panel);
+
+  --shadow-panel: var(--sp-shadow-panel);
+  --shadow-panel-hover: var(--sp-shadow-panel-hover);
+
+  --font-display: var(--font-fraunces), Georgia, serif;
+  --font-sans: var(--font-inter), Arial, Helvetica, sans-serif;
 }
 
 body {
   color: var(--foreground);
   background: var(--background);
-  font-family: Arial, Helvetica, sans-serif;
 }
 
 /* Subtle entrance motion for the homepage.

@@ -1,19 +1,26 @@
 import type { Metadata } from 'next';
-import { Inter } from 'next/font/google';
+import { Inter, Fraunces } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
 import BroadcastBanner from '@/components/BroadcastBanner';
 import StickyWhatsAppButton from '@/components/StickyWhatsAppButton';
-import CustomCursor from '@/components/ui/CustomCursor';
-import AntigravityCanvas from '@/components/ui/AntigravityCanvas';
 import ScrollProgressBar from '@/components/ui/ScrollProgressBar';
 import CommandPalette from '@/components/ui/CommandPalette';
 import BackToTop from '@/components/ui/BackToTop';
 import MobileBottomSheet from '@/components/ui/MobileBottomSheet';
 import { BUSINESS_INFO } from '@/lib/constants';
 
-const inter = Inter({ subsets: ['latin'] });
+const inter = Inter({ subsets: ['latin'], variable: '--font-inter' });
+
+// Display/editorial serif for the new design system's H1/H2 headings.
+// Loaded as a CSS variable only (via `fraunces.variable`) — not yet applied
+// to any heading. Later phases will use it via the `font-display` utility.
+const fraunces = Fraunces({
+  subsets: ['latin'],
+  weight: ['500', '600'],
+  variable: '--font-fraunces',
+});
 
 export const metadata: Metadata = {
   title: `${BUSINESS_INFO.name} | ${BUSINESS_INFO.tagline} | Aland`,
@@ -51,14 +58,12 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className="scroll-smooth">
+    <html lang="en" className={`scroll-smooth ${inter.variable} ${fraunces.variable}`}>
       <body
         className={`${inter.className} min-h-screen flex flex-col bg-slate-50 text-slate-900 antialiased selection:bg-blue-600 selection:text-white`}
       >
         {/* Interactive Background & Modern UI Layer */}
-        <AntigravityCanvas />
         <ScrollProgressBar />
-        <CustomCursor />
         <CommandPalette />
 
         {/* Core Layout Structure */}

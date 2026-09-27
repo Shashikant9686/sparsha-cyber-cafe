@@ -76,7 +76,7 @@ export interface EventDate {
   id?: string;
   counselling_event_id?: string;
   title: string;
-  start_date: string;
+  start_date: string | null;
   end_date?: string | null;
   description?: string | null;
   display_order: number;

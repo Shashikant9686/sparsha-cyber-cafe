@@ -16,10 +16,10 @@ export default async function CounsellingPage() {
   const { data: events } = await supabase
     .from('counselling_events')
     .select('*, event_dates(*)')
-    .neq('status', 'Hidden')
+    .ilike('status', 'active')
     .order('created_at', { ascending: false });
 
-  const counsellingList: CounsellingEvent[] = (events as unknown as CounsellingEvent[]) || [];
+  const counsellingList: CounsellingEvent[] = events || [];
 
   return (
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
@@ -63,7 +63,9 @@ export default async function CounsellingPage() {
                         {d.title}
                       </span>
                       <span className="font-bold text-slate-900">
-                        {new Date(d.start_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
+                        {d.start_date
+                          ? new Date(d.start_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                          : 'Date to be announced'}
                         {d.end_date && ` – ${new Date(d.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
                       </span>
                     </li>

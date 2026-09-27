@@ -37,6 +37,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
     .from('announcements')
     .select('title, description, image_url, category')
     .eq('slug', slug)
+    .eq('status', 'active')
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .maybeSingle();
 
   if (!update) {
@@ -69,9 +71,11 @@ export default async function UpdateDetailPage({ params }: PageProps) {
     .from('announcements')
     .select('*')
     .eq('slug', slug)
+    .eq('status', 'active')
+    .or(`expires_at.is.null,expires_at.gt.${new Date().toISOString()}`)
     .maybeSingle();
 
-  if (error || !update || update.status !== 'active' || (update.expires_at && new Date(update.expires_at) < new Date())) {
+  if (error || !update) {
     notFound();
   }
 

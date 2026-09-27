@@ -254,7 +254,7 @@ export default async function ServiceDetailPage({ params }: PageProps) {
         offers: {
           '@type': 'Offer',
           priceCurrency: 'INR',
-          price: (service.fee ?? 0) + (service.service_charge ?? 0),
+price: (Number(service.fee) || 0) + (Number(service.service_charge) || 0),
           eligibleRegion: {
             '@type': 'State',
             name: 'Karnataka',

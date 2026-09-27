@@ -277,60 +277,40 @@ export default function ServiceForm({ initialData, serviceId }: ServiceFormProps
       }
 
       if (activeServiceId) {
-        // 1. Sync required_documents table
-        await supabase
-          .from('required_documents')
-          .delete()
-          .eq('service_id', activeServiceId);
-
+        // Atomically replace required_documents + service_images for this
+        // service via the existing sync_service_children RPC. If either
+        // child insert fails, the RPC rolls back entirely rather than
+        // leaving the service with some/none of its children deleted.
         const validDocs = docs
           .filter((d) => d.document_name.trim() !== '')
           .map((d, index) => ({
-            service_id: activeServiceId,
             document_name: d.document_name.trim(),
             is_mandatory: Boolean(d.is_mandatory),
-            description: d.notes?.trim() || null,
-            display_order: index + 1
+            display_order: index + 1,
+            notes: d.notes?.trim() || null
           }));
-
-        if (validDocs.length > 0) {
-          const { error: docError } = await supabase
-            .from('required_documents')
-            .insert(validDocs);
-
-          if (docError) {
-            console.error('Error inserting documents:', docError);
-            setErrorMsg(`Service saved, but required documents failed to save: ${docError.message}`);
-          }
-        }
-
-        // 2. Sync service_images table
-        await supabase
-          .from('service_images')
-          .delete()
-          .eq('service_id', activeServiceId);
 
         const validImages = images
           .filter((img) => img.image_url.trim() !== '')
           .map((img, index) => ({
-            service_id: activeServiceId,
             image_url: img.image_url.trim(),
-            alt_text: img.caption?.trim() || null,
-            image_type: 'Poster',
+            caption: img.caption?.trim() || null,
             display_order: index + 1
           }));
 
-        if (validImages.length > 0) {
-          const { error: imgError } = await supabase
-            .from('service_images')
-            .insert(validImages);
+        const { error: syncError } = await supabase.rpc('sync_service_children', {
+          p_service_id: activeServiceId,
+          p_documents: validDocs,
+          p_images: validImages
+        });
 
-          if (imgError) {
-            console.error('Error inserting images:', imgError);
-            setErrorMsg((prev) => prev
-              ? `${prev} Images also failed to save: ${imgError.message}`
-              : `Service saved, but images failed to save: ${imgError.message}`);
-          }
+        // Throw (rather than just setting errorMsg) so the catch block below
+        // handles it: the service row was saved, but its children were not,
+        // so this must surface as a failed overall save and must not navigate away.
+        if (syncError) {
+          throw new Error(
+            `Service details were saved, but required documents/images failed to save: ${syncError.message}. Your previous documents/images were kept — please try saving again.`
+          );
         }
       }
 

@@ -140,19 +140,23 @@ export default function AdminAnnouncementsPage() {
       }
 
       if (activeId) {
-        await supabase.from('announcement_images').delete().eq('announcement_id', activeId);
-        if (images.length > 0) {
-          const imagePayload = images.map((img, index) => ({
-            announcement_id: activeId,
-            image_url: img.image_url,
-            alt_text: img.alt_text || null,
-            display_order: index + 1,
+        const imagePayload = images
+          .filter((img) => img.image_url.trim() !== '')
+          .map((img, index) => ({
+            image_url: img.image_url.trim(),
+            caption: img.alt_text?.trim() || null,
+            display_order: index + 1
           }));
-          const { error: imgError } = await supabase.from('announcement_images').insert(imagePayload);
-          if (imgError) {
-            console.error('Error saving announcement images:', imgError);
-            setErrorMsg(`Announcement saved, but images failed to save: ${imgError.message}`);
-          }
+
+        const { error: syncError } = await supabase.rpc('sync_announcement_images', {
+          p_announcement_id: activeId,
+          p_images: imagePayload
+        });
+
+        if (syncError) {
+          throw new Error(
+            `Announcement details were saved, but images failed to save: ${syncError.message}. Your previous images were kept — please try saving again.`
+          );
         }
       }
 

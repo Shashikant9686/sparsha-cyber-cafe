@@ -56,64 +56,64 @@ export default async function ServicesPage({ searchParams }: PageProps) {
   const serviceList = services || [];
 
   return (
-    <div className="min-h-screen bg-slate-50 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-ivory py-12 px-4 sm:px-6 lg:px-8">
       <div className="max-w-6xl mx-auto space-y-8">
         <div className="animate-fade-in-up">
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Services Directory</h1>
-          <p className="text-sm text-slate-600 mt-1">
+          <h1 className="font-display text-3xl font-semibold text-ink tracking-tight">Services Directory</h1>
+          <p className="text-sm text-stone-500 mt-1">
             Explore all online applications, student schemes, and digital services available at {BUSINESS_INFO.name}.
           </p>
         </div>
 
         <form method="GET" className="relative animate-fade-in-up-1">
           {categorySlug && <input type="hidden" name="category" value={categorySlug} />}
-          <Search className="w-4 h-4 text-slate-400 absolute left-4 top-1/2 -translate-y-1/2" />
+          <Search className="w-4 h-4 text-stone-500 absolute left-4 top-1/2 -translate-y-1/2" />
           <input
             type="text"
             name="q"
             defaultValue={query}
             placeholder="Search services (e.g. PAN card, ration card, KCET)..."
-            className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-2xl text-sm font-medium focus:border-blue-500 focus:outline-hidden transition shadow-xs"
+            className="w-full pl-11 pr-4 py-3 bg-surface border border-stone-200 rounded-panel text-sm font-medium focus:border-saffron focus:outline-hidden transition shadow-panel"
           />
         </form>
         {(query || selectedCategory) && (
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-stone-500">
             {serviceList.length} result{serviceList.length !== 1 ? 's' : ''}
             {query && <> for &quot;{query}&quot;</>}
             {selectedCategory && (
               <>
-                {' '}in <span className="font-bold text-slate-700">{selectedCategory.name}</span>
+                {' '}in <span className="font-bold text-ink">{selectedCategory.name}</span>
               </>
             )}
             {' · '}
             <Link
               href={query ? `/services?category=${encodeURIComponent(categorySlug)}` : '/services'}
-              className="text-blue-600 font-bold hover:underline"
+              className="text-saffron font-bold hover:underline"
             >
               {query && selectedCategory ? 'Clear search' : query ? 'Clear search' : 'Clear filter'}
             </Link>
             {query && selectedCategory && (
               <>
                 {' · '}
-                <Link href="/services" className="text-blue-600 font-bold hover:underline">Clear all</Link>
+                <Link href="/services" className="text-saffron font-bold hover:underline">Clear all</Link>
               </>
             )}
           </p>
         )}
 
         {serviceList.length === 0 ? (
-          <div className="bg-white rounded-3xl p-12 text-center border border-slate-200 shadow-sm space-y-3">
-            <Layers className="w-10 h-10 text-slate-300 mx-auto" />
-            <h3 className="text-base font-bold text-slate-800">
+          <div className="bg-surface rounded-panel p-12 text-center border border-stone-200 shadow-panel space-y-3">
+            <Layers className="w-10 h-10 text-stone-500/40 mx-auto" />
+            <h3 className="text-base font-bold text-ink">
               {query || selectedCategory ? 'No Matching Services Found' : 'No Services Published Yet'}
             </h3>
-            <p className="text-xs text-slate-500 max-w-sm mx-auto">
+            <p className="text-xs text-stone-500 max-w-sm mx-auto">
               {query || selectedCategory
                 ? 'Try a different search term or category, or contact us directly for help finding the right service.'
                 : 'New schemes and certificate application services will appear here once configured in the admin desk.'}
             </p>
             {(query || selectedCategory) && (
-              <Link href="/services" className="inline-block text-xs font-bold text-blue-600 hover:underline pt-1">
+              <Link href="/services" className="inline-block text-xs font-bold text-saffron hover:underline pt-1">
                 View All Services
               </Link>
             )}
@@ -135,12 +135,12 @@ export default async function ServicesPage({ searchParams }: PageProps) {
               return (
                 <div
                   key={service.id}
-                  className={`bg-white rounded-3xl border border-slate-200/80 p-6 shadow-sm hover:shadow-md hover-lift transition-all flex flex-col justify-between ${staggerClass}`}
+                  className={`bg-surface rounded-panel border border-stone-200 p-6 shadow-panel hover:shadow-panel-hover hover-lift transition-all flex flex-col justify-between ${staggerClass}`}
                 >
                   <div className="space-y-3">
                     <div className="flex items-center gap-2 flex-wrap">
                       {categoryName && (
-                        <span className="inline-block px-3 py-1 bg-blue-50 text-blue-700 text-[11px] font-bold rounded-full">
+                        <span className="inline-block px-3 py-1 bg-saffron-soft text-saffron text-[11px] font-bold rounded-full">
                           {categoryName}
                         </span>
                       )}
@@ -151,33 +151,33 @@ export default async function ServicesPage({ searchParams }: PageProps) {
                       )}
                     </div>
 
-                    <h3 className="text-base font-bold text-slate-900 leading-snug">
+                    <h3 className="text-base font-bold text-ink leading-snug">
                       {displayTitle}
                     </h3>
 
                     {displayDesc && (
-                      <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-stone-500 line-clamp-2 leading-relaxed">
                         {displayDesc}
                       </p>
                     )}
 
                     {(time || govtFee || centerFee) && (
-                      <div className="pt-2 flex flex-wrap items-center gap-4 text-[11px] text-slate-500 font-medium">
+                      <div className="pt-2 flex flex-wrap items-center gap-4 text-[11px] text-stone-500 font-medium">
                         {time && (
                           <span className="inline-flex items-center gap-1">
-                            <Clock className="w-3.5 h-3.5 text-blue-500" />
+                            <Clock className="w-3.5 h-3.5 text-saffron" />
                             {time}
                           </span>
                         )}
                         {govtFee && (
                           <span className="inline-flex items-center gap-1">
-                            <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
+                            <IndianRupee className="w-3.5 h-3.5 text-green" />
                             {govtFee}
                           </span>
                         )}
                         {centerFee && (
                           <span className="inline-flex items-center gap-1">
-                            <IndianRupee className="w-3.5 h-3.5 text-emerald-600" />
+                            <IndianRupee className="w-3.5 h-3.5 text-green" />
                             {centerFee}
                           </span>
                         )}
@@ -185,19 +185,18 @@ export default async function ServicesPage({ searchParams }: PageProps) {
                     )}
                   </div>
 
-                  <div className="pt-5 mt-4 border-t border-slate-100 flex items-center justify-between gap-2">
-                    
-                      <a href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=${encodeURIComponent(`Hello, I need help with: ${displayTitle}`)}`}
+                  <div className="pt-5 mt-4 border-t border-stone-200 flex items-center justify-between gap-2">
+                    <a href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=${encodeURIComponent(`Hello, I need help with: ${displayTitle}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-emerald-50 hover:bg-emerald-100 text-emerald-700 text-xs font-bold rounded-xl transition btn-press"
+                      className="inline-flex items-center gap-1.5 px-3 py-2 bg-whatsapp/10 hover:bg-whatsapp/20 text-whatsapp text-xs font-bold rounded-control transition btn-press"
                     >
                       <MessageCircle className="w-3.5 h-3.5" />
                       <span>WhatsApp Help</span>
                     </a>
 
                     <Link href={`/services/${slug}`}
-                      className="group/link inline-flex items-center gap-1 text-xs font-bold text-blue-600 hover:text-blue-800 transition"
+                      className="group/link inline-flex items-center gap-1 text-xs font-bold text-saffron hover:opacity-80 transition"
                     >
                       <span>Details</span>
                       <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5" />
