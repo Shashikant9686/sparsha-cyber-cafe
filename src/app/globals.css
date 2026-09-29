@@ -5,35 +5,34 @@
   --foreground: #0f172a;
 
   /* ===================================================================
-   * SPARSHA design tokens — Premium redesign, Phase 1 (color system).
-   * Token NAMES are unchanged from the original system on purpose, so every
-   * existing component (bg-ink, text-saffron, bg-ivory, etc.) picks up the
-   * new palette automatically without being touched. New tokens
-   * (champagne, border-dark) are added here but not yet consumed anywhere
-   * — later phases (Header, 3D hero, sections) will use them.
+   * SPARSHA design tokens — Premium redesign, Phase 2 (cool + gold).
+   * Cool, precise near-black/near-white neutrals (fintech-app discipline)
+   * with gold as the single, sparing luxury accent (jewelry-brand warmth).
+   * Token NAMES are unchanged so every existing component (bg-ink,
+   * text-saffron, bg-ivory, etc.) picks up the new palette automatically.
    * =================================================================== */
-  --sp-ink: #14110d;
-  --sp-ink-soft: #201a13;
-  --sp-ivory: #f6f1e7;
+  --sp-ink: #0e0f12;
+  --sp-ink-soft: #1a1b1f;
+  --sp-ivory: #f6f6f4;
   --sp-surface: #ffffff;
-  --sp-stone-200: #e4dcc8;
-  --sp-stone-500: #8b8579;
-  --sp-stone-700: #4a473e;
+  --sp-stone-200: #e2e2e0;
+  --sp-stone-500: #86868a;
+  --sp-stone-700: #45454a;
 
-  --sp-saffron: #c1521a;
-  --sp-saffron-soft: #f1e1d2;
-  --sp-green: #1b5e3f;
-  --sp-green-soft: #e3ece6;
+  --sp-saffron: #c9a227;
+  --sp-saffron-soft: #f3ecd3;
+  --sp-green: #155c3e;
+  --sp-green-soft: #e1ece6;
   --sp-whatsapp: #22c55e;
 
-  --sp-champagne: #b08d57;
-  --sp-border-dark: rgba(243, 237, 224, 0.08);
+  --sp-champagne: #8a6d3a;
+  --sp-border-dark: rgba(237, 237, 234, 0.08);
 
   --sp-radius-control: 12px;
   --sp-radius-panel: 20px;
 
-  --sp-shadow-panel: 0 1px 2px 0 rgb(22 21 15 / 0.06), 0 1px 3px 0 rgb(22 21 15 / 0.08);
-  --sp-shadow-panel-hover: 0 8px 20px -4px rgb(22 21 15 / 0.12), 0 2px 6px 0 rgb(22 21 15 / 0.06);
+  --sp-shadow-panel: 0 1px 2px 0 rgb(14 15 18 / 0.06), 0 1px 3px 0 rgb(14 15 18 / 0.08);
+  --sp-shadow-panel-hover: 0 8px 20px -4px rgb(14 15 18 / 0.12), 0 2px 6px 0 rgb(14 15 18 / 0.06);
 }
 
 /* Expose the --sp-* tokens as Tailwind utilities (bg-ink, text-saffron,

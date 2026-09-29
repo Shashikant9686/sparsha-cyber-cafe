@@ -3,6 +3,9 @@ import { Inter, Fraunces } from 'next/font/google';
 import './globals.css';
 import Header from '@/components/layout/Header';
 import Footer from '@/components/layout/Footer';
+import HeaderLegacy from '@/components/layout/HeaderLegacy';
+import FooterLegacy from '@/components/layout/FooterLegacy';
+import RouteSwitch from '@/components/layout/RouteSwitch';
 import BroadcastBanner from '@/components/BroadcastBanner';
 import StickyWhatsAppButton from '@/components/StickyWhatsAppButton';
 import ScrollProgressBar from '@/components/ui/ScrollProgressBar';
@@ -68,9 +71,9 @@ export default function RootLayout({
 
         {/* Core Layout Structure */}
         <BroadcastBanner />
-        <Header />
+        <RouteSwitch adminContent={<HeaderLegacy />} publicContent={<Header />} />
         <main className="relative z-10 flex-1">{children}</main>
-        <Footer />
+        <RouteSwitch adminContent={<FooterLegacy />} publicContent={<Footer />} />
 
         {/* Global Floating Action Controls */}
         <BackToTop />
