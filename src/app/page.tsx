@@ -7,7 +7,7 @@ import WebsiteQR from '@/components/WebsiteQR';
 import type { Service, Category } from '@/lib/types';
 import { BUSINESS_INFO } from '@/lib/constants';
 import { getUpdateUrgency, getUrgencyBadgeClasses } from '@/lib/date-utils';
-import VerificationSealScene from '@/components/three/VerificationSealScene';
+import ApplicationCoreScene from '@/components/three/ApplicationCoreScene';
 
 export const revalidate = 60;
 
@@ -101,7 +101,7 @@ export default async function HomePage() {
             </div>
           </div>
 
-            <VerificationSealScene />
+            <ApplicationCoreScene />
         </div>
       </section>
 
