@@ -119,7 +119,7 @@ export default async function ServicesPage({ searchParams }: PageProps) {
             )}
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          <div className="divide-y divide-stone-200">
             {serviceList.map((service, i) => {
               const displayTitle = service.name || 'Untitled Service';
               const displayDesc = service.short_description || service.full_description || '';
@@ -135,34 +135,36 @@ export default async function ServicesPage({ searchParams }: PageProps) {
               return (
                 <div
                   key={service.id}
-                  className={`bg-surface rounded-panel border border-stone-200 p-6 shadow-panel hover:shadow-panel-hover hover-lift transition-all flex flex-col justify-between ${staggerClass}`}
+                  className={`group flex flex-col sm:flex-row sm:items-center gap-4 py-6 first:pt-0 ${staggerClass}`}
                 >
-                  <div className="space-y-3">
-                    <div className="flex items-center gap-2 flex-wrap">
+                  <div className="flex-1 min-w-0 space-y-2">
+                    <div className="flex items-center gap-3 flex-wrap">
                       {categoryName && (
-                        <span className="inline-block px-3 py-1 bg-saffron-soft text-saffron text-[11px] font-bold rounded-full">
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-saffron">
                           {categoryName}
                         </span>
                       )}
                       {isNew && (
-                        <span className="inline-block px-3 py-1 bg-amber-50 text-amber-700 text-[11px] font-bold rounded-full">
+                        <span className="text-[10px] font-bold uppercase tracking-wide text-green">
                           New
                         </span>
                       )}
                     </div>
 
-                    <h3 className="text-base font-bold text-ink leading-snug">
-                      {displayTitle}
-                    </h3>
+                    <Link href={`/services/${slug}`} className="block w-fit">
+                      <h3 className="font-display text-lg font-semibold text-ink leading-snug group-hover:text-saffron transition">
+                        {displayTitle}
+                      </h3>
+                    </Link>
 
                     {displayDesc && (
-                      <p className="text-xs text-stone-500 line-clamp-2 leading-relaxed">
+                      <p className="text-xs text-stone-500 line-clamp-2 leading-relaxed max-w-2xl">
                         {displayDesc}
                       </p>
                     )}
 
                     {(time || govtFee || centerFee) && (
-                      <div className="pt-2 flex flex-wrap items-center gap-4 text-[11px] text-stone-500 font-medium">
+                      <div className="pt-1 flex flex-wrap items-center gap-4 text-[11px] text-stone-500 font-medium">
                         {time && (
                           <span className="inline-flex items-center gap-1">
                             <Clock className="w-3.5 h-3.5 text-saffron" />
@@ -185,7 +187,7 @@ export default async function ServicesPage({ searchParams }: PageProps) {
                     )}
                   </div>
 
-                  <div className="pt-5 mt-4 border-t border-stone-200 flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2 shrink-0">
                     <a href={`https://wa.me/${BUSINESS_INFO.whatsappNumber}?text=${encodeURIComponent(`Hello, I need help with: ${displayTitle}`)}`}
                       target="_blank"
                       rel="noopener noreferrer"
@@ -196,7 +198,7 @@ export default async function ServicesPage({ searchParams }: PageProps) {
                     </a>
 
                     <Link href={`/services/${slug}`}
-                      className="group/link inline-flex items-center gap-1 text-xs font-bold text-saffron hover:opacity-80 transition"
+                      className="group/link inline-flex items-center gap-1 text-xs font-bold text-saffron hover:opacity-80 transition shrink-0"
                     >
                       <span>Details</span>
                       <ArrowRight className="w-3.5 h-3.5 transition-transform group-hover/link:translate-x-0.5" />

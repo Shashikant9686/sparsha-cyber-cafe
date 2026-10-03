@@ -25,7 +25,7 @@ export default function Footer() {
 
           {/* Quick Navigation */}
           <div className="space-y-3">
-            <h4 className="text-xs font-bold text-ivory/80 uppercase tracking-wider">Quick Navigation</h4>
+            <h4 className="text-[10px] font-bold text-saffron/70 uppercase tracking-wider">Quick Navigation</h4>
             <ul className="space-y-2 text-xs text-ivory/60 font-medium">
               <li>
                 <Link href="/" className="hover:text-saffron transition">Home Portal</Link>
@@ -44,8 +44,8 @@ export default function Footer() {
 
           {/* Center Details */}
           <div className="space-y-3 text-xs text-ivory/60">
-            <h4 className="text-xs font-bold text-ivory/80 uppercase tracking-wider">Center Details</h4>
-            <div className="flex items-start gap-2">
+            <h4 className="text-[10px] font-bold text-saffron/70 uppercase tracking-wider">Center Details</h4>
+            <div className="flex items-start gap-2 flex-wrap">
               <Clock className="w-4 h-4 text-saffron shrink-0 mt-0.5" />
               <span>Monday – Sunday: 8:00 AM – 8:00 PM</span>
               <OpenStatusBadge />
@@ -56,17 +56,36 @@ export default function Footer() {
             </div>
             <div className="flex items-start gap-2">
               <Phone className="w-4 h-4 text-whatsapp shrink-0 mt-0.5" />
-              <span>+91 7090161083 / +91 7483941814</span>
+              <span>
+                <a
+                  href="tel:+917090161083"
+                  className="hover:text-saffron transition focus-visible:outline-saffron focus-visible:outline-2 focus-visible:outline-offset-2 rounded-sm"
+                >
+                  +91 7090161083
+                </a>
+                {' / '}
+                <a
+                  href="tel:+917483941814"
+                  className="hover:text-saffron transition focus-visible:outline-saffron focus-visible:outline-2 focus-visible:outline-offset-2 rounded-sm"
+                >
+                  +91 7483941814
+                </a>
+              </span>
             </div>
             <div className="flex items-start gap-2">
               <Mail className="w-4 h-4 text-saffron shrink-0 mt-0.5" />
-              <span>Shashikantkmali83@gmail.com</span>
+              <a
+                href="mailto:Shashikantkmali83@gmail.com"
+                className="hover:text-saffron transition focus-visible:outline-saffron focus-visible:outline-2 focus-visible:outline-offset-2 rounded-sm"
+              >
+                Shashikantkmali83@gmail.com
+              </a>
             </div>
           </div>
         </div>
 
         {/* Bottom Bar */}
-        <div className="pt-8 border-t border-ivory/10 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-ivory/50">
+        <div className="pt-8 border-t border-saffron/20 flex flex-col sm:flex-row items-center justify-between gap-4 text-[11px] text-ivory/50">
           <p>© 2026 {BUSINESS_INFO.name}. All rights reserved.</p>
           <Link href="/login" className="hover:text-ivory transition">
             Operator / Admin Login

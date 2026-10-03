@@ -119,42 +119,40 @@ export default async function HomePage() {
             </Link>
           </div>
 
-          <div className="grid grid-cols-1 lg:grid-cols-[1.4fr_1fr] gap-6">
-            {/* Featured update */}
+          <div className="space-y-8">
+            {/* Featured update — an editorial feature spot, not a boxed card */}
             {(() => {
               const featured = latestUpdates[0];
               return (
                 <Link
                   href={`/updates/${featured.slug}`}
-                  className={`group bg-surface rounded-panel border overflow-hidden shadow-panel hover:shadow-panel-hover hover:-translate-y-1 active:scale-95 transition-all duration-300 flex flex-col sm:flex-row animate-fade-in-up ${
-                    featured.featured ? 'border-saffron/40 ring-1 ring-saffron/20 featured-card-glow' : 'border-stone-200'
-                  }`}
+                  className="group grid grid-cols-1 sm:grid-cols-[1.1fr_1.4fr] gap-6 items-center pb-8 border-b border-stone-200 animate-fade-in-up"
                 >
                   {featured.image_url ? (
                     // eslint-disable-next-line @next/next/no-img-element
-                    <img src={featured.image_url} alt={featured.title} className="w-full sm:w-2/5 h-40 sm:h-auto object-cover" />
+                    <img src={featured.image_url} alt={featured.title} className="w-full h-48 sm:h-56 object-cover rounded-panel" />
                   ) : (
-                    <div className="w-full sm:w-2/5 h-40 sm:h-auto bg-saffron-soft flex items-center justify-center">
-                      <Megaphone className="w-8 h-8 text-saffron/50" />
+                    <div className="w-full h-48 sm:h-56 bg-ink rounded-panel flex items-center justify-center">
+                      <Megaphone className="w-8 h-8 text-saffron/60" />
                     </div>
                   )}
-                  <div className="p-5 sm:p-6 space-y-2 flex-1 flex flex-col justify-center">
+                  <div className="space-y-3">
                     {featured.category && (
-                      <span className="inline-block text-[10px] font-bold px-2 py-0.5 bg-saffron-soft text-saffron rounded-md w-fit">
+                      <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-saffron">
                         {featured.category}
                       </span>
                     )}
-                    <h3 className="text-lg font-bold text-ink leading-snug group-hover:text-saffron transition">
+                    <h3 className="font-display text-2xl font-semibold text-ink leading-snug group-hover:text-saffron transition">
                       {featured.title}
                     </h3>
                     {featured.description && (
-                      <p className="text-xs text-stone-500 leading-relaxed line-clamp-2">
+                      <p className="text-sm text-stone-500 leading-relaxed line-clamp-2">
                         {featured.description}
                       </p>
                     )}
                     {featured.last_date && getUpdateUrgency(featured.last_date) && (
                       <span
-                        className={`mt-1 inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md w-fit ${getUrgencyBadgeClasses(
+                        className={`inline-flex items-center gap-1 text-[11px] font-semibold px-2 py-0.5 rounded-md w-fit ${getUrgencyBadgeClasses(
                           getUpdateUrgency(featured.last_date)!.state
                         )}`}
                       >
@@ -167,35 +165,32 @@ export default async function HomePage() {
               );
             })()}
 
-            {/* Supporting updates */}
-            <div className="flex flex-col gap-4">
+            {/* Supporting updates — plain editorial rows, hairline dividers, no card chrome */}
+            <div className="divide-y divide-stone-200">
               {latestUpdates.slice(1).map((update, i) => (
                 <Link
                   key={update.id}
                   href={`/updates/${update.slug}`}
-                  className={`group flex items-center gap-4 p-4 bg-surface rounded-panel border border-stone-200 hover:border-saffron/40 hover:-translate-y-0.5 active:scale-95 shadow-panel hover:shadow-panel-hover transition-all duration-300 ${staggerClass(i + 1)}`}
+                  className={`group flex items-center justify-between gap-4 py-4 first:pt-0 hover:bg-stone-200/20 transition-colors -mx-2 px-2 rounded-control ${staggerClass(i + 1)}`}
                 >
-                  <div className="w-12 h-12 rounded-control bg-saffron-soft text-saffron flex items-center justify-center shrink-0">
-                    <Megaphone className="w-5 h-5" />
-                  </div>
                   <div className="min-w-0 space-y-1">
                     {update.category && (
-                      <span className="inline-block text-[10px] font-bold text-saffron">{update.category}</span>
+                      <span className="inline-block text-[10px] font-bold uppercase tracking-wide text-saffron">{update.category}</span>
                     )}
                     <h3 className="text-sm font-bold text-ink leading-snug line-clamp-1 group-hover:text-saffron transition">
                       {update.title}
                     </h3>
-                    {update.last_date && getUpdateUrgency(update.last_date) && (
-                      <span
-                        className={`inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md w-fit ${getUrgencyBadgeClasses(
-                          getUpdateUrgency(update.last_date)!.state
-                        )}`}
-                      >
-                        <CalendarClock className="w-2.5 h-2.5" />
-                        {getUpdateUrgency(update.last_date)!.label}
-                      </span>
-                    )}
                   </div>
+                  {update.last_date && getUpdateUrgency(update.last_date) && (
+                    <span
+                      className={`shrink-0 inline-flex items-center gap-1 text-[10px] font-semibold px-1.5 py-0.5 rounded-md ${getUrgencyBadgeClasses(
+                        getUpdateUrgency(update.last_date)!.state
+                      )}`}
+                    >
+                      <CalendarClock className="w-2.5 h-2.5" />
+                      {getUpdateUrgency(update.last_date)!.label}
+                    </span>
+                  )}
                 </Link>
               ))}
             </div>
@@ -282,28 +277,36 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* Why Choose Us */}
-      <section className="space-y-6">
+      {/* Why Sparsha — the business process itself as the visual identity */}
+      <section className="bg-ink text-ivory rounded-panel p-8 sm:p-12 space-y-10">
         <div>
-          <h2 className="font-display text-xl font-semibold text-ink">Why Choose {BUSINESS_INFO.name}</h2>
-          <p className="text-xs text-stone-500">One center for every kind of online application and document need</p>
+          <h2 className="font-display text-xl font-semibold text-ivory">Why {BUSINESS_INFO.name}</h2>
+          <p className="text-xs text-ivory/60">One center for every kind of online application and document need</p>
         </div>
-        <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8 bg-surface border border-stone-200 rounded-panel shadow-panel p-8 sm:p-10">
+
+        <div className="flex flex-wrap items-baseline gap-x-3 gap-y-2 font-display text-2xl sm:text-4xl font-semibold tracking-tight">
+          <span className="text-ivory">Check</span>
+          <span className="text-ivory/25 text-xl sm:text-2xl">→</span>
+          <span className="text-saffron">Verify</span>
+          <span className="text-ivory/25 text-xl sm:text-2xl">→</span>
+          <span className="text-ivory">Submit</span>
+          <span className="text-ivory/25 text-xl sm:text-2xl">→</span>
+          <span className="text-saffron">Complete</span>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-[0.9fr_1.1fr] gap-8 pt-8 border-t border-ivory/10">
           {/* Trust statement */}
-          <div className="space-y-4 lg:pr-8 lg:border-r lg:border-stone-200">
-            <div className="w-12 h-12 rounded-control bg-saffron-soft text-saffron flex items-center justify-center">
-              <ShieldCheck className="w-6 h-6" />
-            </div>
-            <h3 className="font-display text-2xl font-semibold text-ink leading-snug">
+          <div className="space-y-4 lg:pr-8 lg:border-r lg:border-ivory/10">
+            <h3 className="font-display text-xl sm:text-2xl font-semibold text-ivory leading-snug">
               Every application, checked before it&apos;s submitted.
             </h3>
-            <p className="text-sm text-stone-500 leading-relaxed">
+            <p className="text-sm text-ivory/60 leading-relaxed">
               SPARSHA brings government applications, land services, education counselling, and document work into one verified process — so nothing goes in incomplete or incorrect.
             </p>
           </div>
 
           {/* Supporting points */}
-          <div className="divide-y divide-stone-200">
+          <div className="divide-y divide-ivory/10">
             {[
               { icon: Users, title: 'One-Stop Digital Center', desc: 'Government applications, land services, exams, admissions, and document work — handled in one place.' },
               { icon: ListChecks, title: 'Checklist-Accurate Applications', desc: 'Every document is verified against the official checklist before submission.' },
@@ -313,12 +316,12 @@ export default async function HomePage() {
               { icon: MessageCircle, title: 'Easy WhatsApp Support', desc: 'Reach us directly on WhatsApp for quick questions or help with any application.' },
             ].map((item, i) => (
               <div key={item.title} className={`flex items-start gap-4 py-4 first:pt-0 last:pb-0 ${staggerClass(i)}`}>
-                <div className="p-2 bg-green-soft text-green rounded-control shrink-0 mt-0.5">
+                <div className="p-2 bg-ivory/5 text-saffron rounded-control shrink-0 mt-0.5">
                   <item.icon className="w-4 h-4" />
                 </div>
                 <div>
-                  <h4 className="font-bold text-sm text-ink">{item.title}</h4>
-                  <p className="text-xs text-stone-500 leading-relaxed">{item.desc}</p>
+                  <h4 className="font-bold text-sm text-ivory">{item.title}</h4>
+                  <p className="text-xs text-ivory/60 leading-relaxed">{item.desc}</p>
                 </div>
               </div>
             ))}
@@ -326,30 +329,28 @@ export default async function HomePage() {
         </div>
       </section>
 
-      {/* How It Works */}
-      <section className="bg-ink text-ivory rounded-panel p-8 sm:p-12 space-y-10">
+      {/* How It Works — refined numeral + hairline treatment, same 4 steps */}
+      <section className="bg-surface border border-stone-200 rounded-panel shadow-panel p-8 sm:p-12 space-y-10">
         <div>
-          <h2 className="font-display text-xl font-semibold text-ivory">How It Works</h2>
-          <p className="text-xs text-ivory/60">Four simple steps, every time</p>
+          <h2 className="font-display text-xl font-semibold text-ink">How It Works</h2>
+          <p className="text-xs text-stone-500">Four simple steps, every time</p>
         </div>
-        <div className="relative">
-          <div className="hidden lg:block absolute top-5 left-0 right-0 h-px bg-ivory/15" aria-hidden="true" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
-            {[
-              { step: '1', title: 'Choose a Service', desc: 'Browse our full list of applications and certificates.' },
-              { step: '2', title: 'Check Required Documents', desc: 'View the exact checklist for your chosen service.' },
-              { step: '3', title: 'Contact or Visit', desc: 'Reach out on WhatsApp or come to the center directly.' },
-              { step: '4', title: 'Application Completed', desc: 'We handle the submission, checked and verified.' },
-            ].map((item, i) => (
-              <div key={item.step} className={`relative space-y-2 ${staggerClass(i)}`}>
-                <div className="relative z-10 w-10 h-10 rounded-full bg-saffron text-ink flex items-center justify-center font-display font-semibold text-sm">
-                  {item.step}
-                </div>
-                <h3 className="font-bold text-sm text-ivory">{item.title}</h3>
-                <p className="text-xs text-ivory/60 leading-relaxed">{item.desc}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8 lg:gap-6">
+          {[
+            { step: '01', title: 'Choose a Service', desc: 'Browse our full list of applications and certificates.' },
+            { step: '02', title: 'Check Required Documents', desc: 'View the exact checklist for your chosen service.' },
+            { step: '03', title: 'Contact or Visit', desc: 'Reach out on WhatsApp or come to the center directly.' },
+            { step: '04', title: 'Application Completed', desc: 'We handle the submission, checked and verified.' },
+          ].map((item, i) => (
+            <div key={item.step} className={`space-y-3 ${staggerClass(i)}`}>
+              <div className="flex items-center gap-3">
+                <span className="font-display text-3xl font-semibold text-saffron/35 leading-none">{item.step}</span>
+                <span className="hidden lg:block flex-1 h-px bg-stone-200" aria-hidden="true" />
               </div>
-            ))}
-          </div>
+              <h3 className="font-bold text-sm text-ink">{item.title}</h3>
+              <p className="text-xs text-stone-500 leading-relaxed">{item.desc}</p>
+            </div>
+          ))}
         </div>
       </section>
 

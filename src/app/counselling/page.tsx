@@ -22,71 +22,73 @@ export default async function CounsellingPage() {
   const counsellingList: CounsellingEvent[] = events || [];
 
   return (
-    <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10 space-y-8">
-      <div>
-        <h1 className="text-3xl font-black text-slate-900 tracking-tight">
-          Admission Counselling Desk
-        </h1>
-        <p className="text-sm text-slate-500 mt-1">
-          KCET, NEET, JEE, and DCET document verification and option entry schedule in Aland.
-        </p>
-      </div>
+    <div className="min-h-screen bg-ivory">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12 space-y-8">
+        <div>
+          <h1 className="font-display text-3xl font-semibold text-ink tracking-tight">
+            Admission Counselling Desk
+          </h1>
+          <p className="text-sm text-stone-500 mt-1">
+            KCET, NEET, JEE, and DCET document verification and option entry schedule in Aland.
+          </p>
+        </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        {counsellingList.map((event) => (
-          <div
-            key={event.id}
-            className="bg-white p-6 rounded-2xl border border-slate-200 shadow-sm space-y-4"
-          >
-            <div className="flex items-center justify-between">
-              <span className="text-xs font-bold px-2.5 py-1 bg-blue-50 text-blue-600 rounded-lg">
-                {event.exam_name} ({event.year})
-              </span>
-              <span className="text-xs font-semibold px-2 py-0.5 bg-emerald-50 text-emerald-700 rounded-md">
-                {event.status}
-              </span>
-            </div>
-
-            <h2 className="text-lg font-bold text-slate-900">{event.counselling_name}</h2>
-            {event.description && (
-              <p className="text-xs text-slate-600">{event.description}</p>
-            )}
-
-            {event.event_dates && event.event_dates.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-slate-100">
-                <span className="text-[11px] font-bold uppercase text-slate-400">Important Dates</span>
-                <ul className="space-y-1.5">
-                  {event.event_dates.map((d) => (
-                    <li key={d.id} className="flex items-center justify-between text-xs text-slate-700 bg-slate-50 p-2 rounded-lg">
-                      <span className="font-semibold flex items-center gap-1.5">
-                        <Calendar className="w-3.5 h-3.5 text-blue-600" />
-                        {d.title}
-                      </span>
-                      <span className="font-bold text-slate-900">
-                        {d.start_date
-                          ? new Date(d.start_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
-                          : 'Date to be announced'}
-                        {d.end_date && ` – ${new Date(d.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
-                      </span>
-                    </li>
-                  ))}
-                </ul>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          {counsellingList.map((event) => (
+            <div
+              key={event.id}
+              className="bg-surface p-6 rounded-panel border border-stone-200 shadow-panel space-y-4"
+            >
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-bold uppercase tracking-wide text-saffron">
+                  {event.exam_name} ({event.year})
+                </span>
+                <span className="text-[10px] font-bold uppercase tracking-wide text-green">
+                  {event.status}
+                </span>
               </div>
-            )}
 
-            {event.official_link && (
-              <a
-                href={event.official_link}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1.5 text-xs font-bold text-blue-600 hover:text-blue-700 pt-2"
-              >
-                <span>Visit Official Portal</span>
-                <ExternalLink className="w-3.5 h-3.5" />
-              </a>
-            )}
-          </div>
-        ))}
+              <h2 className="font-display text-lg font-semibold text-ink">{event.counselling_name}</h2>
+              {event.description && (
+                <p className="text-xs text-stone-500 leading-relaxed">{event.description}</p>
+              )}
+
+              {event.event_dates && event.event_dates.length > 0 && (
+                <div className="space-y-1 pt-3 border-t border-stone-200">
+                  <span className="text-[10px] font-bold uppercase tracking-wide text-stone-500">Important Dates</span>
+                  <ul className="divide-y divide-stone-200">
+                    {event.event_dates.map((d) => (
+                      <li key={d.id} className="flex items-center justify-between gap-3 text-xs text-ink py-2">
+                        <span className="font-semibold flex items-center gap-1.5">
+                          <Calendar className="w-3.5 h-3.5 text-saffron" />
+                          {d.title}
+                        </span>
+                        <span className="font-bold text-ink shrink-0">
+                          {d.start_date
+                            ? new Date(d.start_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
+                            : 'Date to be announced'}
+                          {d.end_date && ` – ${new Date(d.end_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}`}
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              )}
+
+              {event.official_link && (
+                <a
+                  href={event.official_link}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1.5 text-xs font-bold text-saffron hover:opacity-80 pt-2"
+                >
+                  <span>Visit Official Portal</span>
+                  <ExternalLink className="w-3.5 h-3.5" />
+                </a>
+              )}
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
