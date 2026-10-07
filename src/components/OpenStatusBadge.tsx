@@ -34,10 +34,10 @@ export default function OpenStatusBadge() {
   return (
     <span
       className={`inline-flex items-center gap-1.5 text-[11px] font-bold px-2.5 py-1 rounded-full ${
-        isOpen ? 'bg-emerald-50 text-emerald-700' : 'bg-slate-100 text-slate-500'
+        isOpen ? 'bg-green-soft text-green' : 'bg-stone-200 text-stone-500'
       }`}
     >
-      <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-emerald-500 motion-safe:animate-pulse' : 'bg-slate-400'}`} />
+      <span className={`w-1.5 h-1.5 rounded-full ${isOpen ? 'bg-green motion-safe:animate-pulse' : 'bg-stone-500'}`} />
       {isOpen ? 'Open Now' : 'Closed Now'}
     </span>
   );
